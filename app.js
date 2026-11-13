@@ -875,6 +875,14 @@ $('#importFile').addEventListener('change', async e => {
 if (activeRound()) { const r = activeRound(); const i = r.holes.findIndex(h => !h.done); S.hole = i < 0 ? r.holes.length - 1 : i; }
 document.addEventListener('DOMContentLoaded', render);
 if ('serviceWorker' in navigator && location.protocol !== 'file:') {
-  window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).then(reg => {
+      reg.update().catch(() => {});
+      document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') reg.update().catch(() => {}); });
+    }).catch(() => {});
+    // When a new version takes over, reload once so the new look/code shows straight away (not mid-map).
+    let reloaded = false;
+    navigator.serviceWorker.addEventListener('controllerchange', () => { if (!reloaded && S.view !== 'map') { reloaded = true; location.reload(); } });
+  });
 }
 if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
