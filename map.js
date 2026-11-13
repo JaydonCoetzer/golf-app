@@ -70,6 +70,94 @@ function markShot() {
   if (M.acc > 25) toast(`GPS is rough (±${fd(M.acc)}). Shot saved anyway`);
 }
 
+/* ---------- plays-like: wind + elevation (Open-Meteo, free, no key) ---------- */
+const WX = { wind: null, at: 0, busy: false, meEl: null, meElPos: null, elBusy: false };
+function bearing(a, b) {
+  const r = Math.PI / 180, y = Math.sin((b[1] - a[1]) * r) * Math.cos(b[0] * r);
+  const x = Math.cos(a[0] * r) * Math.sin(b[0] * r) - Math.sin(a[0] * r) * Math.cos(b[0] * r) * Math.cos((b[1] - a[1]) * r);
+  return (Math.atan2(y, x) / r + 360) % 360;
+}
+async function refreshWeather() {
+  if (!M.me || WX.busy || Date.now() - WX.at < 10 * 60000) return;
+  WX.busy = true;
+  try {
+    const j = await (await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${M.me[0].toFixed(4)}&longitude=${M.me[1].toFixed(4)}&current=wind_speed_10m,wind_direction_10m,wind_gusts_10m&wind_speed_unit=kmh`)).json();
+    if (j.current) { WX.wind = { kmh: j.current.wind_speed_10m, gust: j.current.wind_gusts_10m, from: j.current.wind_direction_10m }; WX.at = Date.now(); }
+  } catch (e) {}
+  WX.busy = false; if (S.view === 'map') mapTop();
+}
+async function refreshElevation() {
+  const g = holeGeo(curHole().n);
+  if (!M.me || !g || WX.elBusy) return;
+  const needMe = !WX.meElPos || dist(WX.meElPos, M.me) > 25;
+  const needG = g.el == null;
+  if (!needMe && !needG) return;
+  WX.elBusy = true;
+  try {
+    const pts = [M.me, g.c];
+    const j = await (await fetch(`https://api.open-meteo.com/v1/elevation?latitude=${pts.map(p => p[0].toFixed(5)).join(',')}&longitude=${pts.map(p => p[1].toFixed(5)).join(',')}`)).json();
+    if (j.elevation && j.elevation.length === 2) { WX.meEl = j.elevation[0]; WX.meElPos = [...M.me]; g.el = j.elevation[1]; saveGeo(); }
+  } catch (e) {}
+  WX.elBusy = false; if (S.view === 'map') mapTop();
+}
+/* Rule of thumb: ~1% longer per mph of headwind, ~0.5% shorter per mph of tailwind, plus 1 m per m of rise. */
+function playsLike(from, to) {
+  const d = dist(from, to);
+  let adj = d, parts = [];
+  const g = holeGeo(curHole().n);
+  if (WX.wind && WX.wind.kmh > 3) {
+    const head = (WX.wind.kmh / 1.609) * Math.cos(((WX.wind.from - bearing(from, to)) * Math.PI) / 180);
+    adj += d * (head > 0 ? 0.01 : 0.005) * head;
+  }
+  if (WX.meEl != null && g && g.el != null && to === g.c) { const rise = g.el - WX.meEl; adj += rise; if (Math.abs(rise) >= 2) parts.push(`${rise > 0 ? 'up' : 'down'}hill ${fd(Math.abs(rise))}`); }
+  return { d: adj, parts };
+}
+function windText(to) {
+  if (!WX.wind || !M.me) return '';
+  const rel = ((WX.wind.from - bearing(M.me, to)) + 360) % 360;
+  const dir = rel < 30 || rel > 330 ? 'into you' : rel > 150 && rel < 210 ? 'behind you' : rel < 180 ? 'from the right' : 'from the left';
+  return `Wind ${Math.round(WX.wind.kmh)} km/h ${WX.wind.kmh > 3 ? dir : ''}`;
+}
+
+/* ---------- my club distances (tracked shots, else what I typed in More) ---------- */
+function bagDistances() {
+  const { by } = clubStats(S.rounds);
+  const out = [];
+  for (const [k] of CLUBS) {
+    if (k === 'Pt') continue;
+    const b = by[k], set = b && (b.good.length >= 3 ? b.good : null);
+    let d = null;
+    if (set) { const srt = [...set].sort((x, y) => x - y); d = srt[Math.floor(srt.length / 2)]; }
+    else if (S.settings.bag && Number(S.settings.bag[k]) > 0) d = S.settings.unit === 'yd' ? Number(S.settings.bag[k]) * 0.9144 : Number(S.settings.bag[k]);
+    if (d) out.push({ k, d });
+  }
+  return out.sort((a, b) => a.d - b.d);
+}
+function recommendClub(m) {
+  const bag = bagDistances(); if (!bag.length || m < 15) return null;
+  return bag.find(c => c.d >= m * 0.97) || bag[bag.length - 1];
+}
+
+/* ---------- hazards ahead (from OpenStreetMap bunkers / water) ---------- */
+function hazardsAhead() {
+  const h = curHole(), g = holeGeo(h.n), hz = courseGeo().hazards || [];
+  if (!M.me || !g || !hz.length) return [];
+  const lat0 = M.me[0], k = Math.cos(lat0 * Math.PI / 180) * 111320;
+  const xy = p => [(p[1] - M.me[1]) * k, (p[0] - lat0) * 110540];
+  const G = xy(g.c), L = Math.hypot(G[0], G[1]); if (L < 30) return [];
+  const ux = G[0] / L, uy = G[1] / L;
+  const out = [];
+  for (const z of hz) {
+    let near = 1e9, far = -1e9, side = 0, hit = false;
+    for (const p of z.poly) {
+      const [x, y] = xy(p); const along = x * ux + y * uy, cross = x * uy - y * ux;
+      if (along > 0 && along < L + 15 && Math.abs(cross) < 40) { hit = true; near = Math.min(near, along); far = Math.max(far, along); side += cross; }
+    }
+    if (hit && far - near > 2) out.push({ t: z.t, near, far, side: Math.abs(side) < 5 * z.poly.length ? 'middle' : side > 0 ? 'right' : 'left' });
+  }
+  return out.sort((a, b) => a.near - b.near).slice(0, 3);
+}
+
 /* ---------- Leaflet loading ---------- */
 let leafletP = null;
 function loadLeaflet() {
@@ -98,7 +186,7 @@ function renderMap() {
   }
   $('#flagBtn').classList.toggle('on', M.setFlag);
   $('#mapPanel').innerHTML = mapPanel();
-  mapTop(); drawMap();
+  mapTop(); drawMap(); refreshElevation();
 }
 function initMap() {
   M.fittedMe = false;
@@ -129,6 +217,7 @@ function startGps() {
     M.me = [p.coords.latitude, p.coords.longitude]; M.acc = p.coords.accuracy;
     if (S.view !== 'map') return;
     if (!M.fittedMe) { M.fittedMe = true; fitHole(); autoFind(); }
+    refreshWeather(); refreshElevation();
     mapTop(); drawMap();
   }, err => {
     toast(err.code === 1 ? 'Allow location access to see distances' : 'No GPS signal yet');
@@ -156,7 +245,18 @@ function drawMap() {
   const h = curHole(), g = holeGeo(h.n), geo = courseGeo();
   M.layer.clearLayers();
   if (M.setFlag) for (const gr of geo.greens) L.polygon(gr.poly, { color: '#ffd54a', weight: 2, fillOpacity: 0.15 }).addTo(M.layer);
+  for (const z of geo.hazards || []) if (!g || dist(z.poly[0], g.c) < 600) L.polygon(z.poly, { color: z.t === 'water' ? '#4aa8ff' : '#f3dfa2', weight: 1, fillOpacity: 0.12, interactive: false }).addTo(M.layer);
   if (g && g.poly) L.polygon(g.poly, { color: '#fff', weight: 2, fillOpacity: 0.1 }).addTo(M.layer);
+  if (M.me && !M.setFlag) {
+    const toG = g ? dist(M.me, g.c) : 280;
+    const step = S.settings.unit === 'yd' ? 0.9144 : 1;
+    for (const r of [50, 100, 150, 200, 250]) {
+      const rm = r * step; if (rm > toG + 10) break;
+      L.circle(M.me, { radius: rm, color: '#fff', weight: 1, opacity: 0.45, fill: false, dashArray: '3 6', interactive: false }).addTo(M.layer);
+      L.circleMarker([M.me[0] + rm / 110540, M.me[1]], { radius: 0, opacity: 0, interactive: false })
+        .bindTooltip(String(r), { permanent: true, direction: 'center', className: 'arclbl' }).addTo(M.layer);
+    }
+  }
   if (g) L.circleMarker(g.c, { radius: 9, color: '#fff', weight: 3, fillColor: '#e2a521', fillOpacity: 1 }).addTo(M.layer);
   (h.shots || []).forEach((s, i, arr) => {
     const p = [s.lat, s.lng];
@@ -189,8 +289,20 @@ function mapTop() {
       <div class="mid"><small>To green</small><b>${fd(d.c)}</b></div>
       ${d.b != null ? `<div><small>Back</small><b>${fd(d.b)}</b></div>` : ''}
     </div>`;
+  if (g && M.me && !M.setFlag && !M.target) {
+    const pl = playsLike(M.me, g.c), rec = recommendClub(pl.d), wt = windText(g.c);
+    const showPl = Math.abs(pl.d - d.c) >= 2;
+    const lines = [];
+    if (showPl || rec) lines.push(`${showPl ? `Plays like <b>${fd(pl.d)}</b>${pl.parts.length ? ' (' + pl.parts.join(', ') + ')' : ''}` : ''}${showPl && rec ? ' · ' : ''}${rec ? `<b>${esc(CLUB_NAME[rec.k])}</b>` : ''}`);
+    if (wt) lines.push(wt);
+    for (const z of hazardsAhead()) lines.push(`${z.t === 'water' ? 'Water' : 'Bunker'} ${z.side}: <b>${fd(z.near)}</b> reach · <b>${fd(z.far)}</b> carry`);
+    const note = (courseGeo().notes || {})[h.n];
+    if (note) lines.push('📝 ' + esc(note));
+    if (lines.length) html += `<div class="mt-msg mt-sm">${lines.join('<br>')}</div>`;
+  }
   if (M.target && !M.setFlag) {
     html += `<div class="mt-msg">Target: <b>${M.me ? fd(dist(M.me, M.target)) + ' ' + u : '–'}</b> from you${g ? ` · <b>${fd(dist(M.target, g.c))} ${u}</b> to green` : ''}
+      ${(() => { const t = playsLike(M.me || M.target, M.target), rec = M.me && recommendClub(t.d); return rec ? ` · <b>${esc(CLUB_NAME[rec.k])}</b>` : ''; })()}
       <button class="mt-x" data-act="clearTarget">✕</button></div>`;
   }
   html += M.me ? `<div class="mt-acc">GPS ±${fd(M.acc)} ${u}</div>` : '';
@@ -222,18 +334,21 @@ async function geocodeCourse() {
 }
 async function autoFind(force) {
   const geo = courseGeo();
-  if (M.finding || (!force && (geo.tried || Object.keys(geo.holes).length))) return;
+  if (M.finding || (!force && geo.tried && geo.hz)) return;
   const center = (M.me && (!geo.center || dist(M.me, geo.center) < 3000)) ? M.me : await geocodeCourse();
   if (!center) { if (force) toast('Could not find the course. Set greens by hand.'); return; }
   M.finding = true;
   if (M.map && !Object.keys(geo.holes).length) M.map.setView(center, 16);
   try {
-    const q = `[out:json][timeout:25];(way["golf"="green"](around:2500,${center[0]},${center[1]});way["golf"="hole"](around:2500,${center[0]},${center[1]}););out geom;`;
+    const q = `[out:json][timeout:25];(way["golf"="green"](around:2500,${center[0]},${center[1]});way["golf"="hole"](around:2500,${center[0]},${center[1]});way["golf"="bunker"](around:2500,${center[0]},${center[1]});way["natural"="water"](around:2500,${center[0]},${center[1]});way["golf"~"water_hazard|lateral_water_hazard"](around:2500,${center[0]},${center[1]}););out geom;`;
     const res = await fetch('https://overpass-api.de/api/interpreter', { method: 'POST', body: 'data=' + encodeURIComponent(q), headers: { 'Content-Type': 'application/x-www-form-urlencoded' } });
     const j = await res.json();
     const greens = j.elements.filter(e => e.tags && e.tags.golf === 'green' && e.geometry && e.geometry.length > 2)
       .map(e => { const poly = e.geometry.map(p => [p.lat, p.lon]); return { poly, c: centroid(poly) }; });
     geo.greens = greens;
+    geo.hazards = j.elements.filter(e => e.tags && e.geometry && e.geometry.length > 2 && (e.tags.golf === 'bunker' || e.tags.natural === 'water' || /water_hazard/.test(e.tags.golf || '')))
+      .map(e => ({ t: e.tags.golf === 'bunker' ? 'bunker' : 'water', poly: e.geometry.map(p => [p.lat, p.lon]) })).slice(0, 400);
+    geo.hz = true;
     let n = 0;
     for (const e of j.elements) {
       if (!e.tags || e.tags.golf !== 'hole' || !e.geometry || e.geometry.length < 2) continue;

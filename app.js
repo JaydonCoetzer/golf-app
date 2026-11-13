@@ -184,7 +184,7 @@ function render() {
   applyTheme();
   const m = $('#main');
   if (S.view === 'play') m.innerHTML = activeRound() ? viewHole() : viewNewRound();
-  else if (S.view === 'rounds') m.innerHTML = S.detailId ? viewRoundDetail() : viewRounds();
+  else if (S.view === 'rounds') m.innerHTML = S.courseView ? viewCourse() : S.detailId ? viewRoundDetail() : viewRounds();
   else if (S.view === 'stats') m.innerHTML = viewStats();
   else m.innerHTML = viewSettings();
   if (S.view === 'play' && activeRound()) {
@@ -215,7 +215,7 @@ function newDraft() {
 }
 function draftFrom(c, base) {
   return { ...base, course: c ? c.name : '', tees: c ? c.tees || '' : '', count: c ? c.pars.length : 18,
-    pars: c ? [...c.pars, ...STD_PARS.slice(c.pars.length)] : [...STD_PARS], si: c && c.si ? [...c.si] : null };
+    pars: c ? [...c.pars, ...STD_PARS.slice(c.pars.length)] : [...STD_PARS], si: c && c.si ? [...c.si] : null, cr: c && c.cr ? c.cr : '', slope: c && c.slope ? c.slope : '' };
 }
 function viewNewRound() {
   setTitle('New round');
@@ -246,7 +246,14 @@ function viewNewRound() {
     <div>
       <label class="f" for="dHcp">Your handicap (playing) <span class="muted">— optional, for net score & points</span></label>
       <input id="dHcp" type="number" inputmode="decimal" data-bind="hcp" value="${esc(d.hcp)}" placeholder="e.g. 18">
+      ${(() => { const H = typeof handicapIndex === 'function' ? handicapIndex() : {}; const ch = H.index != null ? courseHcp(H.index, Number(d.cr), Number(d.slope), sum(d.pars.slice(0, d.count))) : null;
+        return ch != null && String(ch) !== String(d.hcp) ? `<button class="btn sm" style="margin-top:6px" data-act="useCourseHcp" data-v="${ch}">Use my course handicap: ${ch}</button>` : ''; })()}
     </div>
+    <div class="grid2">
+      <div><label class="f" for="dCr">Course rating</label><input id="dCr" type="number" inputmode="decimal" step="0.1" data-bind="cr" value="${esc(d.cr)}" placeholder="e.g. 71.4"></div>
+      <div><label class="f" for="dSlope">Slope</label><input id="dSlope" type="number" inputmode="numeric" data-bind="slope" value="${esc(d.slope)}" placeholder="e.g. 128"></div>
+    </div>
+    <div class="sub" style="margin-top:-4px">Rating & slope are on the scorecard for your tees. Fill them in to get a handicap index.</div>
     <div>
       <div class="field-title"><span>Holes</span></div>
       ${seg('draftCount', [[18, '18 holes'], [9, '9 holes']], d.count)}
@@ -361,7 +368,7 @@ function viewHole() {
   ${nav}
   <div class="card">
     <div class="holehead">
-      <div><div class="hn">Hole ${h.n}</div><div class="sub">${h.si ? `SI ${h.si}` : ''}${hc ? ` · ${given ? `you get ${given} shot${given > 1 ? 's' : ''}` : 'no shot'}` : ''}${h.si ? ' · ' : ''}${h.done ? 'Saved' : 'Not saved'}</div></div>
+      <div><div class="hn">Hole ${h.n}</div>${historyLine(r, h)}<div class="sub">${h.si ? `SI ${h.si}` : ''}${hc ? ` · ${given ? `you get ${given} shot${given > 1 ? 's' : ''}` : 'no shot'}` : ''}${h.si ? ' · ' : ''}${h.done ? 'Saved' : 'Not saved'}</div></div>
       ${seg('par', [[3, 'Par 3'], [4, 'Par 4'], [5, 'Par 5']], h.par)}
     </div>
     <div class="grid2">
@@ -373,6 +380,8 @@ function viewHole() {
   <div class="card stack">${tee || ''}${tee ? '' : '<div class="sub">Par 3 — no fairway to track.</div>'}</div>
   <div class="card stack"><h2>Scoring zone</h2>${zone}</div>
   <div class="card"><h2>Around the green</h2>${green}</div>
+  <div class="card"><details class="help"${((courseGeo().notes || {})[h.n]) ? ' open' : ''}><summary>📝 Notes for hole ${h.n} <span class="sub">saved for next time</span></summary>
+    <textarea data-bind="holeNote" placeholder="e.g. Aim left of the bunker. Green slopes back to front.">${esc((courseGeo().notes || {})[h.n] || '')}</textarea></details></div>
   <div class="card"><h2>Penalties <span class="sub">already counted in your score</span></h2>${pens}</div>
   <div class="navbar">
     <button class="btn" data-act="prevHole" ${S.hole === 0 ? 'disabled' : ''}>‹ Back</button>
@@ -392,7 +401,7 @@ function viewRounds() {
   if (!rs.length) return `<div class="card empty">
       <svg viewBox="0 0 24 24"><path d="M6 21V3l11 4.5L8 12" fill="none" stroke="currentColor" stroke-width="2"/></svg>
       <p>No rounds yet.<br>Head to <b>Play</b> to start one.</p></div>`;
-  return `<div class="card">${rs.map(r => {
+  return coursesCard() + `<div class="card">${rs.map(r => {
     const { A, tp } = roundSummary(r);
     return `<button class="list-item" data-act="openRound" data-v="${r.id}">
       <div><b>${esc(r.course || 'Round')}</b> ${!r.completed ? '<span class="pill">In progress</span>' : ''}
@@ -453,7 +462,7 @@ function viewStats() {
     `<button data-act="range" data-v="${v}" class="${S.range === v ? 'on' : ''}">${l}</button>`).join('')}</div>`;
   if (!rs.length) return chips + `<div class="card empty"><p>Play a round and your stats will show up here.</p></div>`;
   const A = aggregate(rs);
-  return chips + focusCard(A) + statsBody(A, rs, false) + (typeof clubCard === 'function' ? clubCard(rs) : '') + trendCard(rs);
+  return chips + handicapCard() + focusCard(A) + statsBody(A, rs, false) + clubCard(rs) + trendCard(rs) + bestsCard(S.rounds);
 }
 
 function tile(k, v, note, cls = '') { return `<div class="tile"><div class="k">${k}</div><div class="v">${v}</div>${note ? `<div class="t ${cls}">${note}</div>` : ''}</div>`; }
@@ -659,6 +668,7 @@ function viewSettings() {
     <h2>Appearance</h2>
     ${seg('theme', [['auto', 'Auto'], ['light', 'Light'], ['dark', 'Dark']], s.theme)}
   </div>
+  ${bagCard()}
   <div class="card">
     <h2>Saved courses</h2>
     ${S.courses.length ? S.courses.map((c, i) => `<div class="list-item"><div><b>${esc(c.name)}</b><div class="sub">${c.pars.length} holes · par ${sum(c.pars)}${c.tees ? ' · ' + esc(c.tees) : ''}</div></div>
@@ -686,7 +696,7 @@ function viewSettings() {
     <details class="help"><summary>Install on your phone</summary>
       <p><b>iPhone (Safari):</b> tap Share → <i>Add to Home Screen</i>.<br><b>Android (Chrome):</b> tap ⋮ → <i>Install app</i> / <i>Add to Home screen</i>.<br>After the first load it works offline, even with no signal on the course.</p>
     </details>
-    <div class="sub" style="margin-top:8px">Version 1.2</div>
+    <div class="sub" style="margin-top:8px">Version 1.3</div>
   </div>`;
 }
 
@@ -705,7 +715,7 @@ function saveRoundCourse(r) {
   const pars = r.holes.map(h => h.par);
   const si = r.holes.every(h => h.si) ? r.holes.map(h => h.si) : null;
   const i = S.courses.findIndex(c => c.name.toLowerCase() === name.toLowerCase() && c.pars.length === pars.length);
-  const c = { name, pars, si, tees: r.tees || '' };
+  const c = { name, pars, si, tees: r.tees || '', cr: r.cr || null, slope: r.slope || null };
   if (i >= 0) S.courses.splice(i, 1);
   S.courses.unshift(c);
 }
@@ -728,7 +738,7 @@ const ACTIONS = {
   startRound() {
     const d = S.draft;
     const r = { id: uid(), created: Date.now(), date: d.date || localDate(), course: d.course.trim(), tees: d.tees.trim(), notes: '', completed: false,
-      holes: d.pars.slice(0, d.count).map((p, i) => newHole(i + 1, p, d.si && d.si[i])), hcp: d.hcp === '' ? null : Number(d.hcp) };
+      holes: d.pars.slice(0, d.count).map((p, i) => newHole(i + 1, p, d.si && d.si[i])), hcp: d.hcp === '' ? null : Number(d.hcp), cr: Number(d.cr) || null, slope: Number(d.slope) || null };
     S.settings.hcp = d.hcp;
     S.rounds.push(r); S.activeId = r.id; S.hole = 0; S.draft = null;
     saveRoundCourse(r);
@@ -806,7 +816,7 @@ document.addEventListener('click', e => {
   const tab = e.target.closest('.tab');
   if (tab) {
     S.view = tab.dataset.view;
-    if (S.view === 'rounds') S.detailId = null;
+    if (S.view === 'rounds') { S.detailId = null; S.courseView = null; }
     persist(); render(); window.scrollTo(0, 0); return;
   }
   const el = e.target.closest('[data-act]');
@@ -821,6 +831,9 @@ document.addEventListener('click', e => {
 document.addEventListener('input', e => {
   const el = e.target.closest('[data-bind]'); if (!el) return;
   const k = el.dataset.bind;
+  if ((k === 'cr' || k === 'slope') && S.draft) { S.draft[k] = el.value; return; }
+  if (k === 'holeNote') { const g = courseGeo(); g.notes = g.notes || {}; g.notes[curHole().n] = el.value; saveGeo(); return; }
+  if (k === 'bag') { S.settings.bag = S.settings.bag || {}; S.settings.bag[el.dataset.v] = el.value; persist(); return; }
   if (k === 'hcp' && S.draft) { S.draft.hcp = el.value; const pos = el.selectionStart; render(); const i = $('#dHcp'); i.focus(); try { i.setSelectionRange(pos, pos); } catch (e) {} return; }
   if (['course', 'date', 'tees'].includes(k) && S.draft) {
     if (k === 'course') S.draft.si = null;
@@ -854,7 +867,7 @@ $('#importFile').addEventListener('change', async e => {
 
 /* ---------- boot ---------- */
 if (activeRound()) { const r = activeRound(); const i = r.holes.findIndex(h => !h.done); S.hole = i < 0 ? r.holes.length - 1 : i; }
-render();
+document.addEventListener('DOMContentLoaded', render);
 if ('serviceWorker' in navigator && location.protocol !== 'file:') {
   window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
 }

@@ -228,13 +228,13 @@ svg.chart text { fill: var(--muted); font-size: 10px; }
 body.mapmode main { padding-top: 0; }
 #mapWrap { position: relative; isolation: isolate; z-index: 0; height: 58dvh; margin: 0 -16px 12px; background: #1b2a22; }
 #map { position: absolute; inset: 0; }
-#mapTop { position: absolute; top: 8px; left: 8px; right: 8px; z-index: 500; display: flex; flex-direction: column; gap: 6px; pointer-events: none; }
+#mapTop { position: absolute; top: 6px; left: 8px; right: 8px; z-index: 500; display: flex; flex-direction: column; gap: 6px; pointer-events: none; }
 #mapTop > * { pointer-events: auto; }
-.mt-d { display: flex; justify-content: center; gap: 4px; background: rgba(8,20,14,.82); color: #fff; border-radius: 14px; padding: 6px 10px; backdrop-filter: blur(4px); }
+.mt-d { align-self: center; display: flex; justify-content: center; gap: 4px; background: rgba(8,20,14,.82); color: #fff; border-radius: 14px; padding: 6px 10px; backdrop-filter: blur(4px); }
 .mt-d div { text-align: center; min-width: 64px; }
 .mt-d small { display: block; font-size: 11px; opacity: .75; font-weight: 600; }
 .mt-d b { font-size: 24px; font-variant-numeric: tabular-nums; }
-.mt-d .mid b { font-size: 38px; color: #ffd54a; }
+.mt-d .mid b { font-size: 32px; color: #ffd54a; line-height: 1.05; }
 .mt-msg { background: rgba(8,20,14,.82); color: #fff; border-radius: 12px; padding: 8px 12px; font-size: 14px; display: flex; align-items: center; gap: 8px; }
 .mt-x { margin-left: auto; background: rgba(255,255,255,.2); border: 0; color: #fff; border-radius: 999px; width: 28px; height: 28px; }
 .mt-acc { align-self: flex-start; background: rgba(8,20,14,.7); color: #cfe; font-size: 11px; padding: 2px 8px; border-radius: 999px; }
@@ -251,3 +251,9 @@ body.mapmode main { padding-top: 0; }
 .shot .x { margin-left: auto; border: 0; background: none; color: var(--muted); font-size: 16px; padding: 4px 8px; }
 .leaflet-tooltip.shotnum { background: none; border: 0; box-shadow: none; color: #0e5a3a; font-weight: 800; font-size: 10px; padding: 0; }
 .leaflet-tooltip.shotnum::before { display: none; }
+.mt-sm { font-size: 12.5px; display: block; line-height: 1.4; padding: 6px 10px; align-self: flex-start; max-width: 100%; }
+.leaflet-tooltip.arclbl { background: none; border: 0; box-shadow: none; color: #fff; font-weight: 700; font-size: 10px; padding: 0; text-shadow: 0 0 3px #000; }
+.leaflet-tooltip.arclbl::before { display: none; }
+.baggrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.baggrid label { display: flex; flex-direction: column; gap: 3px; font-size: 12px; color: var(--muted); font-weight: 650; }
+.baggrid input { padding: 8px 10px; }
