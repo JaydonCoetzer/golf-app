@@ -171,6 +171,7 @@ textarea { min-height: 70px; resize: vertical; }
 .pargrid button { border: 1px solid var(--line); background: var(--surface-2); border-radius: 8px; padding: 4px 0; display: flex; flex-direction: column; align-items: center; }
 .pargrid button small { font-size: 10px; color: var(--muted); }
 .pargrid button b { font-size: 17px; }
+.pargrid button .dots { color: var(--accent); font-size: 12px; line-height: .8; }
 .pargrid button.p3 b { color: var(--bogey); }
 .pargrid button.p5 b { color: var(--warn); }
 

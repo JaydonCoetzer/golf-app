@@ -3,8 +3,14 @@
    All data lives in this browser's localStorage. Use More → Backup to export. */
 
 const KEYS = { rounds: 'gs.rounds', courses: 'gs.courses', settings: 'gs.settings', active: 'gs.active' };
-const DEFAULT_SETTINGS = { zone: 100, unit: 'm', target: 15, szGoal: 70, d3Goal: 70, theme: 'auto' };
+const DEFAULT_SETTINGS = { hcp: '', zone: 100, unit: 'm', target: 15, szGoal: 70, d3Goal: 70, theme: 'auto' };
 const STD_PARS = [4, 4, 3, 4, 5, 4, 3, 4, 5, 4, 4, 3, 4, 5, 4, 3, 4, 5];
+/* Built-in course cards. Par and stroke index (men's) from public scorecards; check against the club card. */
+const BUILTIN_COURSES = [
+  { name: 'Parow Golf Club', area: 'Parow, Cape Town',
+    pars: [4, 3, 5, 4, 4, 5, 3, 4, 4, 4, 3, 5, 4, 4, 5, 3, 4, 4],
+    si:   [9, 13, 5, 15, 11, 1, 17, 7, 3, 16, 12, 2, 18, 8, 4, 10, 14, 6] },
+];
 const PUTT_BUCKETS = ['0–1', '1–2', '2–4', '4–8', '8+'];
 
 /* Rough per-18-hole averages for amateur golfers by handicap.
@@ -66,6 +72,22 @@ function toast(msg) {
   clearTimeout(toast._t); toast._t = setTimeout(() => t.classList.remove('show'), 1800);
 }
 function buzz() { try { navigator.vibrate && navigator.vibrate(8); } catch (e) {} }
+function allCourses() {
+  const saved = S.courses.map(c => c.si ? c : { ...c, si: (BUILTIN_COURSES.find(b => b.name.toLowerCase() === c.name.toLowerCase()) || {}).si });
+  return [...saved, ...BUILTIN_COURSES.filter(b => !S.courses.some(c => c.name.toLowerCase() === b.name.toLowerCase()))];
+}
+/* Handicap shots received on a hole, from course handicap and stroke index. */
+function shotsGiven(hcp, si) {
+  if (hcp == null || hcp === '' || !si) return 0;
+  const h = Math.round(Number(hcp)); if (!isFinite(h) || h <= 0) return 0;
+  return Math.floor(h / 18) + (si <= h % 18 ? 1 : 0);
+}
+function hasHcp(r) { return r.hcp != null && r.hcp !== '' && r.holes.some(h => h.si); }
+function points(r, h) { return Math.max(0, 2 + h.par + shotsGiven(r.hcp, h.si) - h.score); }
+function netTotals(r) {
+  const hs = playedHoles(r);
+  return { pts: sum(hs.map(h => points(r, h))), net: sum(hs.map(h => h.score - shotsGiven(r.hcp, h.si))) };
+}
 function zoneLabel() { return `${S.settings.zone} ${S.settings.unit}`; }
 function benchFor(h) {
   const keys = Object.keys(BENCH).map(Number).sort((a, b) => a - b);
@@ -74,8 +96,8 @@ function benchFor(h) {
 }
 
 /* ---------- model ---------- */
-function newHole(n, par) {
-  return { n, par, score: null, putts: null, fw: null, szir: null, inZone: null, miss: null, ud: null, sand: null, ob: 0, water: 0, pen: 0, putt1: null, done: false };
+function newHole(n, par, si) {
+  return { n, par, si: si || null, score: null, putts: null, fw: null, szir: null, inZone: null, miss: null, ud: null, sand: null, ob: 0, water: 0, pen: 0, putt1: null, done: false };
 }
 function derive(h) {
   if (h.score == null) return null;
@@ -185,8 +207,12 @@ const stepper = (act, value, label, small = false) =>
 
 /* ----- new round ----- */
 function newDraft() {
-  const last = S.courses[0];
-  return { course: last ? last.name : '', date: localDate(), tees: last ? last.tees || '' : '', count: last ? last.pars.length : 18, pars: last ? [...last.pars] : [...STD_PARS] };
+  const last = allCourses()[0];
+  return draftFrom(last, { date: localDate(), hcp: S.settings.hcp ?? '' });
+}
+function draftFrom(c, base) {
+  return { ...base, course: c ? c.name : '', tees: c ? c.tees || '' : '', count: c ? c.pars.length : 18,
+    pars: c ? [...c.pars, ...STD_PARS.slice(c.pars.length)] : [...STD_PARS], si: c && c.si ? [...c.si] : null };
 }
 function viewNewRound() {
   setTitle('New round');
@@ -201,6 +227,11 @@ function viewNewRound() {
   }).join('')}</div>` : ''}
   <div class="card stack">
     <div>
+      <div class="field-title"><span>Pick a course</span></div>
+      <div class="chips">${allCourses().map((c, i) => `<button data-act="pickCourse" data-v="${i}" class="${c.name === d.course ? 'on' : ''}">${esc(c.name)}</button>`).join('')}
+        <button data-act="pickCourse" data-v="-1" class="${!d.course ? 'on' : ''}">+ Other course</button></div>
+    </div>
+    <div>
       <label class="f" for="dCourse">Course</label>
       <input id="dCourse" type="text" list="courseList" data-bind="course" value="${esc(d.course)}" placeholder="e.g. Royal Johannesburg East" autocomplete="off">
       <datalist id="courseList">${S.courses.map(c => `<option value="${esc(c.name)}">`).join('')}</datalist>
@@ -210,13 +241,18 @@ function viewNewRound() {
       <div><label class="f" for="dTees">Tees</label><input id="dTees" type="text" data-bind="tees" value="${esc(d.tees)}" placeholder="e.g. White"></div>
     </div>
     <div>
+      <label class="f" for="dHcp">Your handicap (playing) <span class="muted">— optional, for net score & points</span></label>
+      <input id="dHcp" type="number" inputmode="decimal" data-bind="hcp" value="${esc(d.hcp)}" placeholder="e.g. 18">
+    </div>
+    <div>
       <div class="field-title"><span>Holes</span></div>
       ${seg('draftCount', [[18, '18 holes'], [9, '9 holes']], d.count)}
     </div>
     <div>
       <div class="field-title"><span>Par for each hole (tap to change)</span><span>Par ${parTotal}</span></div>
       <div class="pargrid">${d.pars.slice(0, d.count).map((p, i) =>
-        `<button data-act="draftPar" data-v="${i}" class="p${p}"><small>${i + 1}</small><b>${p}</b></button>`).join('')}</div>
+        `<button data-act="draftPar" data-v="${i}" class="p${p}"><small>${i + 1}</small><b>${p}</b>${d.si ? `<small>SI ${d.si[i]}</small>` : ''}${d.si && shotsGiven(d.hcp, d.si[i]) ? `<small class="dots">${'•'.repeat(shotsGiven(d.hcp, d.si[i]))}</small>` : ''}</button>`).join('')}</div>
+      ${d.si ? `<div class="sub" style="margin-top:6px">SI = stroke index (1 = hardest).${d.hcp !== '' ? ' • = a shot you get on that hole.' : ''}</div>` : ''}
     </div>
     <button class="btn primary block" data-act="startRound">Tee off ⛳</button>
   </div>
@@ -247,9 +283,10 @@ function viewHole() {
   const x = derive(preview);
   const reg = h.par - 2;
 
+  const hc = hasHcp(r), NT = netTotals(r), given = shotsGiven(r.hcp, h.si);
   const strip = `<div class="strip" style="margin-bottom:10px">
     <div><b>${hs.length ? toPar(tp) : '–'}</b><span>${hs.length ? A.strokes + ' · thru ' + hs.length : 'To par'}</span></div>
-    <div><b>${A.puttsN ? A.putts : '–'}</b><span>Putts</span></div>
+    ${hc ? `<div><b>${hs.length ? NT.pts : '–'}</b><span>Points</span></div>` : `<div><b>${A.puttsN ? A.putts : '–'}</b><span>Putts</span></div>`}
     <div><b>${fmtPct(A.sz, A.szN)}</b><span>SZIR</span></div>
     <div><b>${fmtPct(A.d3, A.d3N)}</b><span>Down in 3</span></div>
   </div>`;
@@ -321,11 +358,11 @@ function viewHole() {
   ${nav}
   <div class="card">
     <div class="holehead">
-      <div><div class="hn">Hole ${h.n}</div><div class="sub">${h.done ? 'Saved' : 'Not saved yet'}</div></div>
+      <div><div class="hn">Hole ${h.n}</div><div class="sub">${h.si ? `SI ${h.si}` : ''}${hc ? ` · ${given ? `you get ${given} shot${given > 1 ? 's' : ''}` : 'no shot'}` : ''}${h.si ? ' · ' : ''}${h.done ? 'Saved' : 'Not saved'}</div></div>
       ${seg('par', [[3, 'Par 3'], [4, 'Par 4'], [5, 'Par 5']], h.par)}
     </div>
     <div class="grid2">
-      <div><div class="field-title"><span>Score</span></div>${stepper('score', preview.score, scoreName(preview.score, h.par))}</div>
+      <div><div class="field-title"><span>Score</span></div>${stepper('score', preview.score, scoreName(preview.score, h.par) + (hc ? ` · ${points(r, preview)} pts` : ''))}</div>
       <div><div class="field-title"><span>Putts</span></div>${stepper('putts', preview.putts, preview.putts === 1 ? 'one-putt' : preview.putts >= 3 ? 'three-putt' : 'putts')}</div>
     </div>
   </div>
@@ -356,7 +393,7 @@ function viewRounds() {
     return `<button class="list-item" data-act="openRound" data-v="${r.id}">
       <div><b>${esc(r.course || 'Round')}</b> ${!r.completed ? '<span class="pill">In progress</span>' : ''}
         <div class="sub">${fmtDate(r.date)} · ${A.holes}/${r.holes.length} holes${r.tees ? ' · ' + esc(r.tees) : ''}</div>
-        <div class="sub">Putts ${A.putts || '–'} · FIR ${fmtPct(A.fir, A.firN)} · GIR ${fmtPct(A.gir, A.girN)} · SZIR ${fmtPct(A.sz, A.szN)} · D3 ${fmtPct(A.d3, A.d3N)}</div>
+        <div class="sub">${hasHcp(r) && A.holes ? netTotals(r).pts + ' pts · ' : ''}Putts ${A.putts || '–'} · FIR ${fmtPct(A.fir, A.firN)} · GIR ${fmtPct(A.gir, A.girN)} · SZIR ${fmtPct(A.sz, A.szN)} · D3 ${fmtPct(A.d3, A.d3N)}</div>
       </div>
       <div style="text-align:right"><div class="big">${A.holes ? A.strokes : '–'}</div><div class="sub">${A.holes ? toPar(tp) : ''}</div></div>
     </button>`;
@@ -368,23 +405,24 @@ function viewRoundDetail() {
   if (!r) { S.detailId = null; return viewRounds(); }
   setTitle(r.course || 'Round', `<button class="tbtn" data-act="closeDetail">‹ Rounds</button>`);
   const { A, tp } = roundSummary(r);
+  const hc = hasHcp(r), NT = netTotals(r);
   const yes = v => (v == null ? '<span class="muted">–</span>' : v ? '✓' : '<span style="color:var(--bad)">✗</span>');
   const rows = r.holes.map(h => {
-    if (!h.done || h.score == null) return `<tr><td>${h.n}</td><td>${h.par}</td><td colspan="7" class="muted">—</td></tr>`;
+    if (!h.done || h.score == null) return `<tr><td>${h.n}</td><td>${h.par}</td><td colspan="${hc ? 8 : 7}" class="muted">—</td></tr>`;
     const x = derive(h);
     return `<tr><td>${h.n}</td><td>${h.par}</td><td><span class="sc ${scoreClass(x.toPar)}">${h.score}</span></td><td>${h.putts ?? '–'}</td>
       <td>${h.par > 3 ? (h.fw === 'hit' ? '✓' : h.fw ? { left: '←', right: '→', short: '↓' }[h.fw] : '–') : ''}</td>
-      <td>${yes(x.gir)}</td><td>${yes(h.szir)}</td><td>${yes(x.d3)}</td><td>${x.pens || ''}</td></tr>`;
+      <td>${yes(x.gir)}</td><td>${yes(h.szir)}</td><td>${yes(x.d3)}</td><td>${x.pens || ''}</td>${hc ? `<td>${points(r, h)}</td>` : ''}</tr>`;
   }).join('');
   return `
   <div class="card">
-    <div class="row between"><div><b>${fmtDate(r.date)}</b><div class="sub">${r.tees ? esc(r.tees) + ' tees · ' : ''}${A.holes}/${r.holes.length} holes</div></div>
+    <div class="row between"><div><b>${fmtDate(r.date)}</b><div class="sub">${r.tees ? esc(r.tees) + ' tees · ' : ''}${A.holes}/${r.holes.length} holes${hc ? ` · hcp ${r.hcp}` : ''}</div>${hc && A.holes ? `<div style="margin-top:4px"><b>${NT.pts} points</b> · net ${NT.net}</div>` : ''}</div>
     <div style="text-align:right"><div class="big" style="font-size:30px;font-weight:800">${A.strokes || '–'}</div><div class="sub">${A.holes ? toPar(tp) : ''}</div></div></div>
   </div>
   <div class="card scroll-x">
-    <table class="tbl"><thead><tr><th>#</th><th>Par</th><th>Score</th><th>Putts</th><th>FW</th><th>GIR</th><th>SZ</th><th>D3</th><th>Pen</th></tr></thead>
+    <table class="tbl"><thead><tr><th>#</th><th>Par</th><th>Score</th><th>Putts</th><th>FW</th><th>GIR</th><th>SZ</th><th>D3</th><th>Pen</th>${hc ? '<th>Pts</th>' : ''}</tr></thead>
     <tbody>${rows}
-    <tr class="tot"><td>Tot</td><td>${A.par}</td><td>${A.strokes}</td><td>${A.putts}</td><td>${A.fir}/${A.firN}</td><td>${A.gir}/${A.girN}</td><td>${A.sz}/${A.szN}</td><td>${A.d3}/${A.d3N}</td><td>${A.ob + A.water + A.pen || ''}</td></tr>
+    <tr class="tot"><td>Tot</td><td>${A.par}</td><td>${A.strokes}</td><td>${A.putts}</td><td>${A.fir}/${A.firN}</td><td>${A.gir}/${A.girN}</td><td>${A.sz}/${A.szN}</td><td>${A.d3}/${A.d3N}</td><td>${A.ob + A.water + A.pen || ''}</td>${hc ? `<td>${NT.pts}</td>` : ''}</tr>
     </tbody></table>
   </div>
   ${statsBody(A, [r], true)}
@@ -644,7 +682,7 @@ function viewSettings() {
     <details class="help"><summary>Install on your phone</summary>
       <p><b>iPhone (Safari):</b> tap Share → <i>Add to Home Screen</i>.<br><b>Android (Chrome):</b> tap ⋮ → <i>Install app</i> / <i>Add to Home screen</i>.<br>After the first load it works offline, even with no signal on the course.</p>
     </details>
-    <div class="sub" style="margin-top:8px">Version 1.0</div>
+    <div class="sub" style="margin-top:8px">Version 1.1</div>
   </div>`;
 }
 
@@ -661,8 +699,9 @@ function clampHole(h) {
 function saveRoundCourse(r) {
   const name = (r.course || '').trim(); if (!name) return;
   const pars = r.holes.map(h => h.par);
+  const si = r.holes.every(h => h.si) ? r.holes.map(h => h.si) : null;
   const i = S.courses.findIndex(c => c.name.toLowerCase() === name.toLowerCase() && c.pars.length === pars.length);
-  const c = { name, pars, tees: r.tees || '' };
+  const c = { name, pars, si, tees: r.tees || '' };
   if (i >= 0) S.courses.splice(i, 1);
   S.courses.unshift(c);
 }
@@ -675,12 +714,18 @@ function download(name, text, type) {
 
 const ACTIONS = {
   /* draft */
+  pickCourse(v) {
+    const c = Number(v) >= 0 ? allCourses()[Number(v)] : null;
+    S.draft = draftFrom(c, { date: S.draft.date, hcp: S.draft.hcp });
+    if (!c) setTimeout(() => { const i = $('#dCourse'); i && i.focus(); }, 0);
+  },
   draftCount(v) { S.draft.count = Number(v); },
   draftPar(v) { const i = Number(v); const p = S.draft.pars[i]; S.draft.pars[i] = p === 5 ? 3 : p + 1; },
   startRound() {
     const d = S.draft;
     const r = { id: uid(), created: Date.now(), date: d.date || localDate(), course: d.course.trim(), tees: d.tees.trim(), notes: '', completed: false,
-      holes: d.pars.slice(0, d.count).map((p, i) => newHole(i + 1, p)) };
+      holes: d.pars.slice(0, d.count).map((p, i) => newHole(i + 1, p, d.si && d.si[i])), hcp: d.hcp === '' ? null : Number(d.hcp) };
+    S.settings.hcp = d.hcp;
     S.rounds.push(r); S.activeId = r.id; S.hole = 0; S.draft = null;
     saveRoundCourse(r);
     toast('Round started. Good luck!');
@@ -772,11 +817,13 @@ document.addEventListener('click', e => {
 document.addEventListener('input', e => {
   const el = e.target.closest('[data-bind]'); if (!el) return;
   const k = el.dataset.bind;
+  if (k === 'hcp' && S.draft) { S.draft.hcp = el.value; const pos = el.selectionStart; render(); const i = $('#dHcp'); i.focus(); try { i.setSelectionRange(pos, pos); } catch (e) {} return; }
   if (['course', 'date', 'tees'].includes(k) && S.draft) {
+    if (k === 'course') S.draft.si = null;
     S.draft[k] = el.value;
     if (k === 'course') {
-      const c = S.courses.find(c => c.name.toLowerCase() === el.value.trim().toLowerCase());
-      if (c) { S.draft.pars = [...c.pars, ...STD_PARS.slice(c.pars.length)]; S.draft.count = c.pars.length; if (c.tees && !S.draft.tees) S.draft.tees = c.tees; render(); const i = $('#dCourse'); i.focus(); i.setSelectionRange(i.value.length, i.value.length); }
+      const c = allCourses().find(c => c.name.toLowerCase() === el.value.trim().toLowerCase());
+      if (c) { S.draft = draftFrom(c, { date: S.draft.date, hcp: S.draft.hcp }); render(); const i = $('#dCourse'); i.focus(); i.setSelectionRange(i.value.length, i.value.length); }
     }
     return;
   }
