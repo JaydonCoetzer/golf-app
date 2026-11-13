@@ -178,6 +178,7 @@ function aggregate(rounds) {
 /* ---------- rendering ---------- */
 function setTitle(t, right = '') { $('#title').textContent = t; $('#topRight').innerHTML = right; }
 function render() {
+  if (S.pendingReload && S.view !== 'map') { S.pendingReload = false; persist(); location.reload(); return; }
   document.querySelectorAll('.tab').forEach(b => b.classList.toggle('on', b.dataset.view === (S.view === 'map' ? 'play' : S.view === 'bag' ? 'home' : S.view)));
   document.body.classList.toggle('mapmode', S.view === 'map');
   if (S.view !== 'map' && typeof stopMap === 'function') stopMap();
@@ -879,10 +880,15 @@ if ('serviceWorker' in navigator && location.protocol !== 'file:') {
     navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).then(reg => {
       reg.update().catch(() => {});
       document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') reg.update().catch(() => {}); });
+      setInterval(() => reg.update().catch(() => {}), 30 * 60000);
     }).catch(() => {});
     // When a new version takes over, reload once so the new look/code shows straight away (not mid-map).
     let reloaded = false; const hadController = !!navigator.serviceWorker.controller;
-    navigator.serviceWorker.addEventListener('controllerchange', () => { if (hadController && !reloaded && S.view !== 'map') { reloaded = true; location.reload(); } });
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (!hadController || reloaded) return;
+      if (S.view !== 'map') { reloaded = true; location.reload(); }
+      else S.pendingReload = true; // never interrupt the map mid-hole; reload when you next leave it
+    });
   });
 }
 if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
