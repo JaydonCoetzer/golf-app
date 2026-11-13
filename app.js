@@ -177,7 +177,10 @@ function aggregate(rounds) {
 /* ---------- rendering ---------- */
 function setTitle(t, right = '') { $('#title').textContent = t; $('#topRight').innerHTML = right; }
 function render() {
-  document.querySelectorAll('.tab').forEach(b => b.classList.toggle('on', b.dataset.view === S.view));
+  document.querySelectorAll('.tab').forEach(b => b.classList.toggle('on', b.dataset.view === (S.view === 'map' ? 'play' : S.view)));
+  document.body.classList.toggle('mapmode', S.view === 'map');
+  if (S.view !== 'map' && typeof stopMap === 'function') stopMap();
+  if (S.view === 'map') { applyTheme(); return renderMap(); }
   applyTheme();
   const m = $('#main');
   if (S.view === 'play') m.innerHTML = activeRound() ? viewHole() : viewNewRound();
@@ -277,7 +280,7 @@ function viewHole() {
   const hs = playedHoles(r);
   const A = aggregate([r]);
   const tp = A.strokes - A.par;
-  setTitle(r.course || 'Round', `<button class="tbtn" data-act="exitRound">Exit</button>`);
+  setTitle(r.course || 'Round', `<button class="tbtn" data-act="openMap">📍 GPS</button><button class="tbtn" data-act="exitRound">Exit</button>`);
 
   const preview = h.score == null ? { ...h, score: h.par, putts: 2 } : h;
   const x = derive(preview);
@@ -366,6 +369,7 @@ function viewHole() {
       <div><div class="field-title"><span>Putts</span></div>${stepper('putts', preview.putts, preview.putts === 1 ? 'one-putt' : preview.putts >= 3 ? 'three-putt' : 'putts')}</div>
     </div>
   </div>
+  <button class="btn block gpsbtn" data-act="openMap">📍 GPS map, distances & shot tracking${(h.shots || []).length ? ` · ${h.shots.length} shot${h.shots.length > 1 ? 's' : ''} marked` : ''}</button>
   <div class="card stack">${tee || ''}${tee ? '' : '<div class="sub">Par 3 — no fairway to track.</div>'}</div>
   <div class="card stack"><h2>Scoring zone</h2>${zone}</div>
   <div class="card"><h2>Around the green</h2>${green}</div>
@@ -449,7 +453,7 @@ function viewStats() {
     `<button data-act="range" data-v="${v}" class="${S.range === v ? 'on' : ''}">${l}</button>`).join('')}</div>`;
   if (!rs.length) return chips + `<div class="card empty"><p>Play a round and your stats will show up here.</p></div>`;
   const A = aggregate(rs);
-  return chips + focusCard(A) + statsBody(A, rs, false) + trendCard(rs);
+  return chips + focusCard(A) + statsBody(A, rs, false) + (typeof clubCard === 'function' ? clubCard(rs) : '') + trendCard(rs);
 }
 
 function tile(k, v, note, cls = '') { return `<div class="tile"><div class="k">${k}</div><div class="v">${v}</div>${note ? `<div class="t ${cls}">${note}</div>` : ''}</div>`; }
@@ -682,7 +686,7 @@ function viewSettings() {
     <details class="help"><summary>Install on your phone</summary>
       <p><b>iPhone (Safari):</b> tap Share → <i>Add to Home Screen</i>.<br><b>Android (Chrome):</b> tap ⋮ → <i>Install app</i> / <i>Add to Home screen</i>.<br>After the first load it works offline, even with no signal on the course.</p>
     </details>
-    <div class="sub" style="margin-top:8px">Version 1.1</div>
+    <div class="sub" style="margin-top:8px">Version 1.2</div>
   </div>`;
 }
 
@@ -777,7 +781,7 @@ const ACTIONS = {
   theme(v) { S.settings.theme = v; },
   delCourse(v) { S.courses.splice(Number(v), 1); },
   exportJson() {
-    download(`golf-stats-backup-${localDate()}.json`, JSON.stringify({ app: 'golf-stats', version: 1, exported: new Date().toISOString(), rounds: S.rounds, courses: S.courses, settings: S.settings }, null, 1), 'application/json');
+    download(`golf-stats-backup-${localDate()}.json`, JSON.stringify({ app: 'golf-stats', version: 1, exported: new Date().toISOString(), rounds: S.rounds, courses: S.courses, settings: S.settings, geo: S.geo }, null, 1), 'application/json');
   },
   importJson() { $('#importFile').click(); },
   exportCsv() {
@@ -841,6 +845,8 @@ $('#importFile').addEventListener('change', async e => {
     const ids = new Set(S.rounds.map(r => r.id));
     let added = 0;
     for (const r of data.rounds) if (r && r.id && Array.isArray(r.holes) && !ids.has(r.id)) { S.rounds.push(r); added++; }
+    if (data.geo) for (const k in data.geo) if (!S.geo[k]) S.geo[k] = data.geo[k];
+    save('gs.geo', S.geo);
     for (const c of data.courses || []) if (c && c.name && !S.courses.some(x => x.name === c.name && x.pars.length === c.pars.length)) S.courses.push(c);
     persist(); render(); toast(`Imported ${added} round${added === 1 ? '' : 's'}`);
   } catch (err) { toast("That doesn't look like a Golf Stats backup"); }
