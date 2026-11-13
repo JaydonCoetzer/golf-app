@@ -177,7 +177,7 @@ function aggregate(rounds) {
 /* ---------- rendering ---------- */
 function setTitle(t, right = '') { $('#title').textContent = t; $('#topRight').innerHTML = right; }
 function render() {
-  document.querySelectorAll('.tab').forEach(b => b.classList.toggle('on', b.dataset.view === (S.view === 'map' ? 'play' : S.view)));
+  document.querySelectorAll('.tab').forEach(b => b.classList.toggle('on', b.dataset.view === (S.view === 'map' ? 'play' : S.view === 'bag' ? 'home' : S.view)));
   document.body.classList.toggle('mapmode', S.view === 'map');
   if (S.view !== 'map' && typeof stopMap === 'function') stopMap();
   if (S.view === 'map') { applyTheme(); return renderMap(); }
@@ -187,6 +187,7 @@ function render() {
   else if (S.view === 'play') m.innerHTML = activeRound() ? viewHole() : viewNewRound();
   else if (S.view === 'rounds') m.innerHTML = S.courseView ? viewCourse() : S.detailId ? viewRoundDetail() : viewRounds();
   else if (S.view === 'stats') m.innerHTML = viewStats();
+  else if (S.view === 'bag') m.innerHTML = viewBag();
   else m.innerHTML = viewSettings();
   if (S.view === 'play' && activeRound()) {
     const cur = $('.hchip.cur'); if (cur) cur.scrollIntoView({ block: 'nearest', inline: 'center' });
@@ -669,7 +670,7 @@ function viewSettings() {
     <h2>Appearance</h2>
     ${seg('theme', [['auto', 'Auto'], ['light', 'Light'], ['dark', 'Dark']], s.theme)}
   </div>
-  ${bagCard()}
+  <button class="btn block" style="margin-bottom:12px" data-act="goBag">🏌️ Golf bag: club distances ›</button>
   <div class="card">
     <h2>Saved courses</h2>
     ${S.courses.length ? S.courses.map((c, i) => `<div class="list-item"><div><b>${esc(c.name)}</b><div class="sub">${c.pars.length} holes · par ${sum(c.pars)}${c.tees ? ' · ' + esc(c.tees) : ''}</div></div>
@@ -835,6 +836,7 @@ document.addEventListener('input', e => {
   const el = e.target.closest('[data-bind]'); if (!el) return;
   const k = el.dataset.bind;
   if ((k === 'cr' || k === 'slope') && S.draft) { S.draft[k] = el.value; return; }
+  if (k === 'homeSearch') { homeResults(el.value); return; }
   if (k === 'holeNote') { const g = courseGeo(); g.notes = g.notes || {}; g.notes[curHole().n] = el.value; saveGeo(); return; }
   if (k === 'bag') { S.settings.bag = S.settings.bag || {}; S.settings.bag[el.dataset.v] = el.value; persist(); return; }
   if (k === 'hcp' && S.draft) { S.draft.hcp = el.value; const pos = el.selectionStart; render(); const i = $('#dHcp'); i.focus(); try { i.setSelectionRange(pos, pos); } catch (e) {} return; }

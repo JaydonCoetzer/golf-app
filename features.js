@@ -136,47 +136,120 @@ Object.assign(ACTIONS, {
 /* ---------- home ---------- */
 function viewHome() {
   setTitle('Golf Stats', '');
-  const r = activeRound() || S.rounds.find(x => !x.completed);
-  const done = S.rounds.filter(x => playedHoles(x).length).sort((a, b) => (b.date || '').localeCompare(a.date || '') || b.created - a.created);
-  const last = done.find(x => x.completed);
-  const recent = done.filter(x => x.completed).slice(0, 10);
-  const A = aggregate(recent);
+  const inprog = activeRound() || S.rounds.find(x => !x.completed);
+  const full = S.rounds.filter(x => x.completed && playedHoles(x).length === x.holes.length && x.holes.length === 18)
+    .sort((a, b) => (b.date || '').localeCompare(a.date || '') || b.created - a.created);
+  const last = S.rounds.filter(x => x.completed && playedHoles(x).length).sort((a, b) => (b.date || '').localeCompare(a.date || '') || b.created - a.created)[0];
+  const scores = full.map(r => sum(playedHoles(r).map(h => h.score)));
   const H = handicapIndex();
-  const hr = new Date().getHours();
-  const hello = hr < 12 ? 'Good morning' : hr < 17 ? 'Good afternoon' : 'Good evening';
+  const lastScore = last ? sum(playedHoles(last).map(h => h.score)) : null;
+  const shortDate = iso => { try { return new Date(iso + 'T12:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric' }); } catch (e) { return iso; } };
+  const A = aggregate(full.slice(0, 10));
 
-  let hero;
-  if (r) {
-    const hs = playedHoles(r), RA = aggregate([r]);
-    hero = `<div class="hero"><div class="hero-k">Round in progress</div><div class="hero-t">${esc(r.course || 'Round')}</div>
-      <div class="hero-s">${hs.length ? `Thru ${hs.length} · ${toPar(RA.strokes - RA.par)}${hasHcp(r) ? ' · ' + netTotals(r).pts + ' pts' : ''}` : 'Not started yet'}</div>
-      <button class="btn hero-btn" data-act="resume" data-v="${r.id}">Continue round ›</button></div>`;
-  } else {
-    const cs = allCourses().slice(0, 3);
-    hero = `<div class="hero"><div class="hero-k">${hello}</div><div class="hero-t">Ready to play?</div>
-      <button class="btn hero-btn" data-act="newRound">⛳ Start a round</button>
-      ${cs.length ? `<div class="hero-quick">${cs.map((c, i) => `<button data-act="quickStart" data-v="${i}">${esc(c.name)}</button>`).join('')}</div>` : ''}</div>`;
-  }
+  return `<div class="home">
+    <label class="h-search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" stroke-width="2"/><path d="M20 20l-4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      <input type="search" data-bind="homeSearch" placeholder="Find a course to play" autocomplete="off"></label>
+    <div id="homeResults"></div>
 
-  const tiles = `<div class="tiles home-tiles">
-    ${tile('Handicap index', H.index != null ? H.index.toFixed(1) : '–', H.index != null ? 'estimate' : 'needs 3 rated rounds')}
-    ${tile('Avg score', A.holes ? fmt1(A.per18(A.strokes)) : '–', A.rounds ? `last ${A.rounds} round${A.rounds > 1 ? 's' : ''}` : 'no rounds yet')}
-    ${tile('Scoring zone (SZIR)', fmtPct(A.sz, A.szN), `goal ${S.settings.szGoal}%`, A.szN ? (pct(A.sz, A.szN) >= S.settings.szGoal ? 'good' : 'bad') : '')}
-    ${tile('Down in 3', fmtPct(A.d3, A.d3N), `goal ${S.settings.d3Goal}%`, A.d3N ? (pct(A.d3, A.d3N) >= S.settings.d3Goal ? 'good' : 'bad') : '')}
+    <div class="h-hcp"><svg class="h-golfer" viewBox="0 0 40 60" aria-hidden="true"><circle cx="24" cy="8" r="5"/><path d="M22 15l-6 14 4 2-3 26h5l4-20 5 20h5l-7-30 1-10 9-12-3-2-9 11z"/></svg>
+      <span>Handicap estimate</span><b>${H.index != null ? H.index.toFixed(1) : '–'}</b></div>
+
+    <div class="h-trio">
+      <div><b>${S.rounds.filter(r => r.completed).length}</b><span>Rounds</span></div>
+      <div><b>${scores.length ? fmt1(sum(scores) / scores.length) : '–'}</b><span>Average score</span></div>
+      <div><b>${scores.length ? Math.min(...scores) : '–'}</b><span>Best score</span></div>
+    </div>
+
+    ${inprog ? (() => { const hs = playedHoles(inprog), RA = aggregate([inprog]);
+      return `<button class="h-last live" data-act="resume" data-v="${inprog.id}"><div><small>In progress · thru ${hs.length}</small><b>${esc(inprog.course || 'Round')}</b></div><span class="h-score">${hs.length ? toPar(RA.strokes - RA.par) : '–'}</span></button>`; })() : ''}
+    ${last ? `<button class="h-last" data-act="openRound" data-v="${last.id}"><div><small>Last round: ${shortDate(last.date)}</small><b>${esc(last.course || 'Round')}</b></div><span class="h-score">${lastScore}</span></button>` : ''}
+
+    <div class="h-duo">
+      <button data-act="goStats"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><span>My stats</span></button>
+      <button data-act="goBag"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 21h8l1-9H7zM9 12V5l-2-2M12 12V3M15 12V6l2-2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Golf bag</span></button>
+    </div>
+
+    ${A.rounds ? `<div class="h-section">Your game · last ${A.rounds} round${A.rounds > 1 ? 's' : ''}</div>
+    <div class="h-quad">
+      <div><b>${fmtPct(A.sz, A.szN)}</b><span>SZIR</span></div><div><b>${fmtPct(A.d3, A.d3N)}</b><span>Down in 3</span></div>
+      <div><b>${fmtPct(A.fir, A.firN)}</b><span>Fairways</span></div><div><b>${fmtPct(A.gir, A.girN)}</b><span>Greens</span></div>
+    </div>` : ''}
+
+    <button class="h-start" data-act="${inprog ? 'resume' : 'newRound'}" data-v="${inprog ? inprog.id : ''}">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 21V3l11 4.5L8 12" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/></svg>
+      ${inprog ? 'Continue round' : 'Start a round'}</button>
   </div>`;
-
-  const lastCard = last ? (() => {
-    const LA = aggregate([last]);
-    return `<div class="card"><h2>Last round <button class="btn sm" data-act="openRound" data-v="${last.id}">Scorecard ›</button></h2>
-      <div class="row between"><div><b>${esc(last.course || 'Round')}</b><div class="sub">${fmtDate(last.date)}</div></div>
-      <div style="text-align:right"><div class="big" style="font-size:28px;font-weight:800">${LA.strokes}</div><div class="sub">${toPar(LA.strokes - LA.par)}${hasHcp(last) ? ' · ' + netTotals(last).pts + ' pts' : ''}</div></div></div>
-      <div class="strip" style="margin-top:10px"><div><b>${LA.putts}</b><span>Putts</span></div><div><b>${fmtPct(LA.fir, LA.firN)}</b><span>Fairways</span></div><div><b>${fmtPct(LA.gir, LA.girN)}</b><span>Greens</span></div><div><b>${fmtPct(LA.sz, LA.szN)}</b><span>SZIR</span></div></div></div>`;
-  })() : '';
-
-  const focus = recent.length ? focusCard(A) : `<div class="card"><h2>How it works</h2><div class="sub">Start a round and the GPS map opens. Tap <b>Enter score</b> after each hole. Your stats, focus areas and handicap build up from there.</div></div>`;
-  return hero + tiles + lastCard + focus;
 }
+function homeResults(q) {
+  const el = $('#homeResults'); if (!el) return;
+  q = q.trim().toLowerCase();
+  if (!q) { el.innerHTML = ''; return; }
+  const names = new Map();
+  for (const c of allCourses()) names.set(c.name.toLowerCase(), c.name);
+  for (const r of S.rounds) if (r.course) names.set(r.course.trim().toLowerCase(), r.course.trim());
+  const hits = [...names.values()].filter(n => n.toLowerCase().includes(q)).slice(0, 6);
+  el.innerHTML = `<div class="h-results">${hits.map(n => `<button data-act="searchStart" data-v="${esc(n)}"><b>${esc(n)}</b><span>Play ›</span></button>`).join('')}
+    ${hits.some(n => n.toLowerCase() === q) ? '' : `<button data-act="searchStart" data-v="${esc(q.replace(/\b\w/g, c => c.toUpperCase()))}"><b>+ New course: “${esc(q)}”</b><span>Set up ›</span></button>`}</div>`;
+}
+
+/* ---------- golf bag ---------- */
+function viewBag() {
+  setTitle('Golf bag', `<button class="tbtn" data-act="goHome">‹ Home</button>`);
+  const bag = bagDistances();
+  return `${bag.length ? `<div class="card"><h2>Your distances <span class="sub">${S.settings.unit}</span></h2>
+    <div class="bagbars">${bag.slice().reverse().map(c => `<div class="bb"><span>${esc(CLUB_NAME[c.k])}</span><div><i style="width:${Math.round(c.d / bag[bag.length - 1].d * 100)}%"></i></div><b>${fd(c.d)}</b></div>`).join('')}</div>
+    <div class="sub" style="margin-top:6px">From your tracked shots where you have 3+ good shots, otherwise from what you typed below. These power the club suggestions on the map.</div></div>` : ''}
+    ${clubCard(S.rounds)}${bagCard()}`;
+}
+
+/* ---------- hole insights (map sheet) ---------- */
+function holeInsights(n) {
+  const r = activeRound();
+  const rs = courseRounds(r.course).filter(x => x.id !== r.id && x.completed)
+    .sort((a, b) => (b.date || '').localeCompare(a.date || '') || b.created - a.created).slice(0, 10);
+  const hs = rs.map(x => x.holes.find(h => h.n === n)).filter(h => h && h.done && h.score != null);
+  if (!hs.length) return null;
+  const A = aggregate([{ holes: hs }]);
+  return { n: hs.length, avg: A.strokes / A.holes, fir: pct(A.fir, A.firN), gir: pct(A.gir, A.girN), putts: A.puttsN ? A.putts / A.puttsN : null,
+    pen: (A.ob + A.water + A.pen) / A.holes, sz: pct(A.sz, A.szN), d3: pct(A.d3, A.d3N), best: Math.min(...hs.map(h => h.score)) };
+}
+function insightsSheet() {
+  const h = curHole(), r = activeRound(), I = holeInsights(h.n), B = benchFor(S.settings.target);
+  const tab = M.insTab || 'stats';
+  const row = (label, you, them) => `<div class="ins-row"><b>${you}</b><span>${label}</span><em>${them}</em></div>`;
+  const note = (courseGeo().notes || {})[h.n] || '';
+  return `<div class="sheet-h"><b class="ins-title">📈 Insights</b><button class="mt-x dark" data-act="sheet" data-v="">✕</button></div>
+    <div class="seg ins-tabs"><button data-act="insTab" data-v="stats" class="${tab === 'stats' ? 'on' : ''}">Hole ${h.n} stats</button><button data-act="insTab" data-v="notes" class="${tab === 'notes' ? 'on' : ''}">Hole ${h.n} notes${note ? ' •' : ''}</button></div>
+    ${tab === 'stats' ? `
+      <div class="ins-head"><span>You <small>(last ${I ? I.n : 0} here)</small></span><span>${S.settings.target} hcp avg</span></div>
+      ${row('Average score', I ? I.avg.toFixed(1) : '–', '–')}
+      ${row('Best score', I ? I.best : '–', '–')}
+      ${h.par > 3 ? row('Fairway hit', I && I.fir != null ? I.fir + '%' : '–', B.fir + '%') : ''}
+      ${row('GIR', I && I.gir != null ? I.gir + '%' : '–', B.gir + '%')}
+      ${row('Putts', I && I.putts != null ? I.putts.toFixed(1) : '–', (B.putts / 18).toFixed(1))}
+      ${row('Penalties', I ? I.pen.toFixed(1) : '–', (B.pen / 18).toFixed(1))}
+      ${row('Scoring zone in reg.', I && I.sz != null ? I.sz + '%' : '–', `goal ${S.settings.szGoal}%`)}
+      ${row('Down in 3', I && I.d3 != null ? I.d3 + '%' : '–', `goal ${S.settings.d3Goal}%`)}
+      ${I ? '' : '<div class="sub" style="margin-top:8px">Play this hole once and your history shows up here.</div>'}`
+    : `<textarea data-bind="holeNote" style="min-height:140px" placeholder="e.g. Aim at the left edge of the bunker. Green runs back to front.">${esc(note)}</textarea>
+       <div class="sub" style="margin-top:6px">Saved for every time you play this hole.</div>`}
+    <div class="ins-foot">
+      <button data-act="mapPrev" ${S.hole === 0 ? 'disabled' : ''}>‹ ${S.hole === 0 ? '' : h.n - 1}</button>
+      <div><b>Hole ${h.n}</b><span>Par ${h.par}${h.si ? ', SI ' + h.si : ''}</span></div>
+      <button data-act="mapNext" ${S.hole >= r.holes.length - 1 ? 'disabled' : ''}>${S.hole >= r.holes.length - 1 ? '' : h.n + 1} ›</button>
+    </div>`;
+}
+
 Object.assign(ACTIONS, {
   newRound() { S.view = 'play'; S.activeId = null; S.draft = null; },
   quickStart(v) { S.view = 'play'; S.activeId = null; S.draft = draftFrom(allCourses()[Number(v)], { date: localDate(), hcp: S.settings.hcp ?? '' }); },
+  searchStart(v) {
+    const c = allCourses().find(x => sameCourse(x.name, v)) || S.courses.find(x => sameCourse(x.name, v));
+    S.view = 'play'; S.activeId = null;
+    S.draft = draftFrom(c || null, { date: localDate(), hcp: S.settings.hcp ?? '' });
+    if (!c) S.draft.course = v;
+  },
+  goStats() { S.view = 'stats'; },
+  goBag() { S.view = 'bag'; window.scrollTo(0, 0); },
+  insTab(v) { M.insTab = v; },
 });

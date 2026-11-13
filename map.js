@@ -288,6 +288,7 @@ function mapOverlays() {
     <div class="mp-k">Par</div><div class="mp-v">${h.par}</div>
     ${h.si ? `<div class="mp-k">SI</div><div class="mp-v">${h.si}${given ? `<span class="dots">${'•'.repeat(given)}</span>` : ''}</div>` : ''}
     <button class="mp-btn" data-act="sheet" data-v="shots">⛳<span>Shots${(h.shots || []).length ? ' ' + h.shots.length : ''}</span></button>
+    <button class="mp-btn" data-act="sheet" data-v="insights">📈<span>Insights</span></button>
     <button class="mp-btn" data-act="sheet" data-v="hazards">⚠︎<span>Hazards</span></button>`;
 
   // right: distances + plays like
@@ -411,6 +412,7 @@ function sheetHtml() {
       : `<div class="sub">${!M.me ? 'Waiting for GPS…' : !holeGeo(h.n) ? 'Set the green for this hole first.' : (courseGeo().hazards || []).length ? 'No bunkers or water between you and the green.' : 'No hazard map data for this course. Tap anywhere on the map to measure to a bunker or water.'}</div>`)
       + `<button class="btn block sm" style="margin-top:12px" data-act="findGreens">${M.finding ? 'Searching…' : 'Reload map data'}</button>`;
   }
+  if (M.sheet === 'insights') return insightsSheet();
   if (M.sheet === 'menu') {
     return head(esc(r.course || 'Round')) + `<div class="stack">
       <button class="btn block" data-act="enterScore">Enter score for hole ${h.n}</button>
