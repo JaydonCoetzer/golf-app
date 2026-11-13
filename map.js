@@ -175,18 +175,17 @@ function loadLeaflet() {
 /* ---------- lifecycle ---------- */
 function renderMap() {
   const r = activeRound();
-  if (!r) { S.view = 'play'; return render(); }
-  const h = curHole();
-  setTitle(`Hole ${h.n} · Par ${h.par}${h.si ? ' · SI ' + h.si : ''}`, `<button class="tbtn" data-act="closeMap">Scorecard</button>`);
+  if (!r) { S.view = 'home'; return render(); }
   if (!$('#mapWrap')) {
-    $('#main').innerHTML = `<div id="mapWrap"><div id="map"><div class="empty" style="color:#ccc">Loading map…</div></div><div id="mapTop"></div>
-      <div id="mapCtl"><button data-act="recenter" aria-label="Centre">⌖</button><button data-act="toggleFlag" id="flagBtn">Set green</button></div></div>
-      <div id="mapPanel"></div>`;
+    $('#main').innerHTML = `<div id="mapWrap"><div id="map"><div class="empty" style="color:#ccc">Loading map…</div></div>
+      <div id="mapLeft" class="mp"></div><div id="mapRight" class="mp"></div>
+      <div id="mapChips"></div>
+      <div id="mapFab"></div>
+      <div id="mapBar"></div>
+      <div id="mapSheet"></div></div>`;
     initMap();
   }
-  $('#flagBtn').classList.toggle('on', M.setFlag);
-  $('#mapPanel').innerHTML = mapPanel();
-  mapTop(); drawMap(); refreshElevation();
+  mapOverlays(); drawMap(); refreshElevation();
 }
 function initMap() {
   M.fittedMe = false;
@@ -208,7 +207,7 @@ function stopMap() {
   if (M.watch != null) { navigator.geolocation.clearWatch(M.watch); M.watch = null; }
   if (M.wake) { M.wake.release().catch(() => {}); M.wake = null; }
   if (M.map) { M.map.remove(); M.map = null; M.layer = null; }
-  M.target = null; M.setFlag = false;
+  M.target = null; M.setFlag = false; M.sheet = null;
 }
 function startGps() {
   if (!navigator.geolocation) { toast('This phone has no GPS access in the browser'); return; }
@@ -276,37 +275,70 @@ function drawMap() {
     L.circleMarker(M.me, { radius: 8, color: '#fff', weight: 3, fillColor: '#3d8bfd', fillOpacity: 1 }).addTo(M.layer);
   }
 }
-function mapTop() {
-  const el = $('#mapTop'); if (!el) return;
-  const h = curHole(), g = holeGeo(h.n), u = S.settings.unit;
+function mapTop() { mapOverlays(); }
+function mapOverlays() {
+  if (!$('#mapLeft')) return;
+  const r = activeRound(), h = curHole(), g = holeGeo(h.n), u = S.settings.unit;
   const d = greenDistances(h.n);
-  let html;
-  if (M.setFlag) html = `<div class="mt-msg">Tap the middle of the green for hole ${h.n}${courseGeo().greens.length ? ' (or tap a yellow outline)' : ''}.</div>`;
-  else if (!g) html = `<div class="mt-msg">No green saved for hole ${h.n} yet. Tap <b>Set green</b>, then tap the green on the map. It's saved for next time.</div>`;
-  else if (!M.me) html = `<div class="mt-msg">Finding your GPS position…</div>`;
-  else html = `<div class="mt-d">
-      ${d.f != null ? `<div><small>Front</small><b>${fd(d.f)}</b></div>` : ''}
-      <div class="mid"><small>To green</small><b>${fd(d.c)}</b></div>
-      ${d.b != null ? `<div><small>Back</small><b>${fd(d.b)}</b></div>` : ''}
-    </div>`;
-  if (g && M.me && !M.setFlag && !M.target) {
-    const pl = playsLike(M.me, g.c), rec = recommendClub(pl.d), wt = windText(g.c);
-    const showPl = Math.abs(pl.d - d.c) >= 2;
-    const lines = [];
-    if (showPl || rec) lines.push(`${showPl ? `Plays like <b>${fd(pl.d)}</b>${pl.parts.length ? ' (' + pl.parts.join(', ') + ')' : ''}` : ''}${showPl && rec ? ' · ' : ''}${rec ? `<b>${esc(CLUB_NAME[rec.k])}</b>` : ''}`);
-    if (wt) lines.push(wt);
-    for (const z of hazardsAhead()) lines.push(`${z.t === 'water' ? 'Water' : 'Bunker'} ${z.side}: <b>${fd(z.near)}</b> reach · <b>${fd(z.far)}</b> carry`);
-    const note = (courseGeo().notes || {})[h.n];
-    if (note) lines.push('📝 ' + esc(note));
-    if (lines.length) html += `<div class="mt-msg mt-sm">${lines.join('<br>')}</div>`;
+  const given = hasHcp(r) ? shotsGiven(r.hcp, h.si) : 0;
+
+  // left: hole info + tools
+  $('#mapLeft').innerHTML = `
+    <div class="mp-k">Hole</div><div class="mp-v">${h.n}</div>
+    <div class="mp-k">Par</div><div class="mp-v">${h.par}</div>
+    ${h.si ? `<div class="mp-k">SI</div><div class="mp-v">${h.si}${given ? `<span class="dots">${'•'.repeat(given)}</span>` : ''}</div>` : ''}
+    <button class="mp-btn" data-act="sheet" data-v="shots">⛳<span>Shots${(h.shots || []).length ? ' ' + h.shots.length : ''}</span></button>
+    <button class="mp-btn" data-act="sheet" data-v="hazards">⚠︎<span>Hazards</span></button>`;
+
+  // right: distances + plays like
+  let pl = null, rec = null, rel = null, rise = null;
+  if (g && M.me) {
+    pl = playsLike(M.me, g.c); rec = recommendClub(pl.d);
+    if (WX.wind) rel = ((WX.wind.from + 180 - bearing(M.me, g.c)) + 360) % 360;
+    if (WX.meEl != null && g.el != null) rise = g.el - WX.meEl;
   }
+  $('#mapRight').innerHTML = `
+    <div class="mp-k">Back</div><div class="mp-s">${d && d.b != null ? fd(d.b) : '––'}</div>
+    <div class="mp-big">${d ? fd(d.c) : '––'}</div>
+    <div class="mp-k">Front</div><div class="mp-s">${d && d.f != null ? fd(d.f) : '––'}</div>
+    <hr>
+    <div class="mp-k">Plays like</div><div class="mp-s">${pl ? fd(pl.d) : '––'}</div>
+    <div class="mp-k">Wind</div><div class="mp-s">${WX.wind ? `<span class="warrow" style="transform:rotate(${rel ?? 0}deg)">↑</span>${Math.round(WX.wind.kmh)}<small>km/h</small>` : '––'}</div>
+    <div class="mp-k">Elevation</div><div class="mp-s">${rise != null ? (rise >= 0 ? '+' : '−') + fd(Math.abs(rise)) : '––'}</div>
+    ${rec ? `<div class="mp-club">${esc(rec.k)}</div>` : ''}`;
+
+  // chips: messages above the bottom bar
+  const chips = [];
+  if (M.setFlag) chips.push(`Tap the middle of the green for hole ${h.n}${courseGeo().greens.length ? ' (or a yellow outline)' : ''} <button class="mt-x" data-act="toggleFlag">✕</button>`);
+  else if (!g) chips.push(`No green saved for hole ${h.n}. <button class="chipbtn" data-act="toggleFlag">Set green</button>`);
+  if (!M.me) chips.push('Finding your GPS position…');
+  else if (g && dist(M.me, g.c) > 1200) chips.push('⚠︎ You don\'t seem to be on this hole');
   if (M.target && !M.setFlag) {
-    html += `<div class="mt-msg">Target: <b>${M.me ? fd(dist(M.me, M.target)) + ' ' + u : '–'}</b> from you${g ? ` · <b>${fd(dist(M.target, g.c))} ${u}</b> to green` : ''}
-      ${(() => { const t = playsLike(M.me || M.target, M.target), rec = M.me && recommendClub(t.d); return rec ? ` · <b>${esc(CLUB_NAME[rec.k])}</b>` : ''; })()}
-      <button class="mt-x" data-act="clearTarget">✕</button></div>`;
+    const t = M.me ? playsLike(M.me, M.target) : null, tr = t && recommendClub(t.d);
+    chips.push(`Target <b>${M.me ? fd(dist(M.me, M.target)) : '–'}</b>${g ? ` · <b>${fd(dist(M.target, g.c))}</b> to green` : ''}${tr ? ` · ${esc(CLUB_NAME[tr.k])}` : ''} <button class="mt-x" data-act="clearTarget">✕</button>`);
   }
-  html += M.me ? `<div class="mt-acc">GPS ±${fd(M.acc)} ${u}</div>` : '';
-  el.innerHTML = html;
+  const note = (courseGeo().notes || {})[h.n];
+  if (note && !M.target && !M.setFlag) chips.push('📝 ' + esc(note));
+  $('#mapChips').innerHTML = chips.map(c => `<div class="mchip">${c}</div>`).join('');
+
+  // floating buttons
+  $('#mapFab').innerHTML = `
+    <button class="fab sm" data-act="recenter" aria-label="Centre on hole">⌖</button>
+    <button class="fab sm ${M.setFlag ? 'on' : ''}" data-act="toggleFlag" aria-label="Set green">⚑</button>
+    <button class="fab mark" data-act="markShot" ${M.me ? '' : 'disabled'}><b>📍 Mark</b><small>${esc(M.club)}</small></button>`;
+
+  // bottom bar
+  const A = aggregate([r]), hs = playedHoles(r), tp = A.strokes - A.par;
+  $('#mapBar').innerHTML = `
+    <button class="mb-menu" data-act="sheet" data-v="menu" aria-label="Menu">☰</button>
+    <button class="mb-arrow" data-act="mapPrev" ${S.hole === 0 ? 'disabled' : ''} aria-label="Previous hole">‹</button>
+    <button class="mb-score" data-act="enterScore"><span class="mb-tp">${hs.length ? toPar(tp) : 'E'}</span><span>${h.done && h.score != null ? `Hole ${h.n}: ${h.score}` : 'Enter score'}</span></button>
+    <button class="mb-arrow" data-act="mapNext" ${S.hole >= r.holes.length - 1 ? 'disabled' : ''} aria-label="Next hole">›</button>
+    <button class="mb-menu" data-act="sheet" data-v="shots" aria-label="Shots">⛳</button>`;
+
+  // sheet
+  $('#mapSheet').className = M.sheet ? 'open' : '';
+  $('#mapSheet').innerHTML = M.sheet ? `<div class="sheet-bg" data-act="sheet" data-v=""></div><div class="sheet">${sheetHtml()}</div>` : '';
 }
 function onMapClick(e) {
   const p = [e.latlng.lat, e.latlng.lng];
@@ -369,34 +401,36 @@ async function autoFind(force) {
   M.finding = false;
 }
 
-/* ---------- panel ---------- */
-function mapPanel() {
+/* ---------- bottom sheets ---------- */
+function sheetHtml() {
   const r = activeRound(), h = curHole(), shots = h.shots || [], u = S.settings.unit;
+  const head = t => `<div class="sheet-h"><b>${t}</b><button class="mt-x dark" data-act="sheet" data-v="">✕</button></div>`;
+  if (M.sheet === 'hazards') {
+    const hz = hazardsAhead();
+    return head(`Hole ${h.n} hazards`) + (hz.length ? hz.map(z => `<div class="shot"><span class="n">${z.t === 'water' ? '💧' : '⛱'}</span><b>${z.t === 'water' ? 'Water' : 'Bunker'} ${z.side}</b><span class="sub" style="margin-left:auto">${fd(z.near)} reach · <b>${fd(z.far)}</b> carry</span></div>`).join('')
+      : `<div class="sub">${!M.me ? 'Waiting for GPS…' : !holeGeo(h.n) ? 'Set the green for this hole first.' : (courseGeo().hazards || []).length ? 'No bunkers or water between you and the green.' : 'No hazard map data for this course. Tap anywhere on the map to measure to a bunker or water.'}</div>`)
+      + `<button class="btn block sm" style="margin-top:12px" data-act="findGreens">${M.finding ? 'Searching…' : 'Reload map data'}</button>`;
+  }
+  if (M.sheet === 'menu') {
+    return head(esc(r.course || 'Round')) + `<div class="stack">
+      <button class="btn block" data-act="enterScore">Enter score for hole ${h.n}</button>
+      <button class="btn block" data-act="openRound" data-v="${r.id}">Full scorecard</button>
+      <button class="btn block" data-act="toggleFlag">Set green for hole ${h.n}</button>
+      <button class="btn block" data-act="findGreens">${M.finding ? 'Searching…' : 'Find greens from map data'}</button>
+      ${holeGeo(h.n) ? `<button class="btn block danger" data-act="clearGreen">Remove saved green for hole ${h.n}</button>` : ''}
+      <div class="grid2"><button class="btn" data-act="goHome">Home</button><button class="btn danger" data-act="exitRound">Exit round</button></div></div>`;
+  }
   const last = shots.length ? shots.length - 1 : null;
-  const list = shots.map((s, i) => {
-    const d = shotDist(h, i);
-    return `<div class="shot"><span class="n">${i + 1}</span><b>${esc(CLUB_NAME[s.club] || s.club)}</b>
-      <span class="sub">${d != null ? fd(d) + ' ' + u : i === last ? 'mark next ball to measure' : ''}${s.bad && s.bad !== 'good' ? ' · ' + s.bad : ''}</span>
-      <button class="x" data-act="delShot" data-v="${i}" aria-label="Delete shot">✕</button></div>`;
-  }).join('');
-  return `
-  <div class="card">
-    <div class="field-title"><span>Club for this shot</span></div>
+  return head(`Shots · hole ${h.n}`) + `
     <div class="clubs">${CLUBS.map(([k]) => `<button data-act="pickClub" data-v="${k}" class="${M.club === k ? 'on' : ''}">${k}</button>`).join('')}</div>
     <button class="btn primary block" style="margin-top:10px" data-act="markShot" ${M.me ? '' : 'disabled'}>📍 Mark ball here · ${esc(CLUB_NAME[M.club])}</button>
-    <div class="sub" style="margin-top:6px">Stand at your ball and tap before each shot. On the green, mark with Putter so your approach distance is measured too.</div>
+    <div class="sub" style="margin-top:6px">Stand at your ball and tap before each shot. On the green, mark with Putter so your approach is measured.</div>
     ${last != null ? `<div class="field-title" style="margin-top:12px"><span>How was shot ${last + 1}?</span></div>
       <div class="chips">${MISHITS.map(([k, l]) => `<button data-act="badShot" data-v="${k}" class="${shots[last].bad === k ? 'on' : ''}">${l}</button>`).join('')}</div>` : ''}
-  </div>
-  ${shots.length ? `<div class="card"><h2>Shots this hole <span class="sub">${shots.length}</span></h2>${list}</div>` : ''}
-  <div class="navbar" style="position:static;margin-bottom:12px">
-    <button class="btn" data-act="mapPrev" ${S.hole === 0 ? 'disabled' : ''}>‹ Hole ${h.n - 1 || ''}</button>
-    ${S.hole < r.holes.length - 1 ? `<button class="btn" data-act="mapNext">Hole ${h.n + 1} ›</button>` : `<button class="btn" data-act="closeMap">Scorecard</button>`}
-  </div>
-  <div class="card">
-    <button class="btn block sm" data-act="findGreens">${M.finding ? 'Searching…' : 'Find greens from map data'}</button>
-    ${holeGeo(h.n) ? `<button class="btn block sm danger" style="margin-top:8px" data-act="clearGreen">Remove saved green for hole ${h.n}</button>` : ''}
-  </div>`;
+    ${shots.map((s, i) => { const d = shotDist(h, i);
+      return `<div class="shot"><span class="n">${i + 1}</span><b>${esc(CLUB_NAME[s.club] || s.club)}</b>
+        <span class="sub">${d != null ? fd(d) + ' ' + u : i === last ? 'mark next ball to measure' : ''}${s.bad && s.bad !== 'good' ? ' · ' + s.bad : ''}</span>
+        <button class="x" data-act="delShot" data-v="${i}" aria-label="Delete shot">✕</button></div>`; }).join('')}`;
 }
 
 /* ---------- club stats ---------- */
@@ -436,15 +470,18 @@ function clubCard(rounds) {
 Object.assign(ACTIONS, {
   openMap() { S.view = 'map'; window.scrollTo(0, 0); },
   closeMap() { S.view = 'play'; },
+  enterScore() { M.sheet = null; S.fromMap = true; S.view = 'play'; window.scrollTo(0, 0); },
+  sheet(v) { M.sheet = v || null; },
+  goHome() { S.view = 'home'; },
   pickClub(v) { M.club = v; },
-  markShot() { markShot(); },
+  markShot() { markShot(); if (!M.sheet) toast(`Shot ${curHole().shots.length} marked · ${CLUB_NAME[curHole().shots[curHole().shots.length - 1].club]}`); },
   badShot(v) { const s = curHole().shots; if (s && s.length) { const x = s[s.length - 1]; x.bad = x.bad === v ? null : v; } },
   delShot(v) { if (confirm('Delete this shot?')) curHole().shots.splice(Number(v), 1); },
-  toggleFlag() { M.setFlag = !M.setFlag; M.target = null; },
+  toggleFlag() { M.setFlag = !M.setFlag; M.target = null; M.sheet = null; },
   clearTarget() { M.target = null; },
   recenter() { fitHole(); },
   mapPrev() { S.hole = Math.max(0, S.hole - 1); M.target = null; M.club = 'Dr'; setTimeout(fitHole, 0); },
   mapNext() { const h = curHole(); if (!h.done && h.score != null) h.done = true; S.hole = Math.min(activeRound().holes.length - 1, S.hole + 1); M.target = null; M.club = 'Dr'; setTimeout(fitHole, 0); },
-  findGreens() { autoFind(true); },
+  findGreens() { M.sheet = null; autoFind(true); },
   clearGreen() { delete courseGeo().holes[curHole().n]; saveGeo(); },
 });

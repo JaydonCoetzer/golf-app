@@ -35,7 +35,7 @@ const S = {
   courses: load(KEYS.courses, []),
   settings: Object.assign({}, DEFAULT_SETTINGS, load(KEYS.settings, {})),
   activeId: load(KEYS.active, null),
-  view: 'play',
+  view: 'home',
   hole: 0,
   range: '10',
   trend: 'toPar',
@@ -183,7 +183,8 @@ function render() {
   if (S.view === 'map') { applyTheme(); return renderMap(); }
   applyTheme();
   const m = $('#main');
-  if (S.view === 'play') m.innerHTML = activeRound() ? viewHole() : viewNewRound();
+  if (S.view === 'home') m.innerHTML = viewHome();
+  else if (S.view === 'play') m.innerHTML = activeRound() ? viewHole() : viewNewRound();
   else if (S.view === 'rounds') m.innerHTML = S.courseView ? viewCourse() : S.detailId ? viewRoundDetail() : viewRounds();
   else if (S.view === 'stats') m.innerHTML = viewStats();
   else m.innerHTML = viewSettings();
@@ -287,7 +288,7 @@ function viewHole() {
   const hs = playedHoles(r);
   const A = aggregate([r]);
   const tp = A.strokes - A.par;
-  setTitle(r.course || 'Round', `<button class="tbtn" data-act="openMap">📍 GPS</button><button class="tbtn" data-act="exitRound">Exit</button>`);
+  setTitle(r.course || 'Round', `<button class="tbtn" data-act="openMap">${S.fromMap ? '‹ Map' : '📍 Map'}</button>`);
 
   const preview = h.score == null ? { ...h, score: h.par, putts: 2 } : h;
   const x = derive(preview);
@@ -696,7 +697,7 @@ function viewSettings() {
     <details class="help"><summary>Install on your phone</summary>
       <p><b>iPhone (Safari):</b> tap Share → <i>Add to Home Screen</i>.<br><b>Android (Chrome):</b> tap ⋮ → <i>Install app</i> / <i>Add to Home screen</i>.<br>After the first load it works offline, even with no signal on the course.</p>
     </details>
-    <div class="sub" style="margin-top:8px">Version 1.3</div>
+    <div class="sub" style="margin-top:8px">Version 1.4</div>
   </div>`;
 }
 
@@ -740,17 +741,17 @@ const ACTIONS = {
     const r = { id: uid(), created: Date.now(), date: d.date || localDate(), course: d.course.trim(), tees: d.tees.trim(), notes: '', completed: false,
       holes: d.pars.slice(0, d.count).map((p, i) => newHole(i + 1, p, d.si && d.si[i])), hcp: d.hcp === '' ? null : Number(d.hcp), cr: Number(d.cr) || null, slope: Number(d.slope) || null };
     S.settings.hcp = d.hcp;
-    S.rounds.push(r); S.activeId = r.id; S.hole = 0; S.draft = null;
+    S.rounds.push(r); S.activeId = r.id; S.hole = 0; S.draft = null; S.view = 'map'; window.scrollTo(0, 0);
     saveRoundCourse(r);
     toast('Round started. Good luck!');
   },
-  resume(v) { S.activeId = v; const r = activeRound(); const i = r.holes.findIndex(h => !h.done); S.hole = i < 0 ? 0 : i; },
-  exitRound() { S.activeId = null; S.draft = null; toast('Round saved. Resume it any time.'); },
+  resume(v) { S.activeId = v; const r = activeRound(); const i = r.holes.findIndex(h => !h.done); S.hole = i < 0 ? 0 : i; S.view = 'map'; },
+  exitRound() { S.activeId = null; S.draft = null; S.view = 'home'; toast('Round saved. Resume it any time.'); },
 
   /* hole */
   goHole(v) { S.hole = Number(v); },
   prevHole() { S.hole = Math.max(0, S.hole - 1); },
-  nextHole() { const h = curHole(); clampHole(h); touch(h); S.hole++; window.scrollTo({ top: 0, behavior: 'smooth' }); },
+  nextHole() { const h = curHole(); clampHole(h); touch(h); S.hole++; if (S.fromMap) S.view = 'map'; window.scrollTo(0, 0); },
   finishRound() {
     const r = activeRound(); const h = curHole(); clampHole(h); touch(h);
     r.completed = true; saveRoundCourse(r); S.activeId = null;
@@ -773,7 +774,7 @@ const ACTIONS = {
   pen(v) { const h = curHole(); clampHole(h); h.pen = Math.max(0, (h.pen || 0) + Number(v)); touch(h); },
 
   /* rounds */
-  openRound(v) { S.detailId = v; window.scrollTo(0, 0); },
+  openRound(v) { S.view = 'rounds'; S.courseView = null; S.detailId = v; window.scrollTo(0, 0); },
   closeDetail() { S.detailId = null; },
   editRound(v) { S.activeId = v; const r = activeRound(); r.completed = false; S.hole = 0; S.view = 'play'; S.detailId = null; window.scrollTo(0, 0); },
   deleteRound(v) {
@@ -816,6 +817,8 @@ document.addEventListener('click', e => {
   const tab = e.target.closest('.tab');
   if (tab) {
     S.view = tab.dataset.view;
+    if (S.view === 'play') S.fromMap = false;
+    if (S.view === 'play' && activeRound()) S.view = 'map';
     if (S.view === 'rounds') { S.detailId = null; S.courseView = null; }
     persist(); render(); window.scrollTo(0, 0); return;
   }

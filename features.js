@@ -132,3 +132,51 @@ Object.assign(ACTIONS, {
   closeCourse() { S.courseView = null; },
   useCourseHcp(v) { S.draft.hcp = v; },
 });
+
+/* ---------- home ---------- */
+function viewHome() {
+  setTitle('Golf Stats', '');
+  const r = activeRound() || S.rounds.find(x => !x.completed);
+  const done = S.rounds.filter(x => playedHoles(x).length).sort((a, b) => (b.date || '').localeCompare(a.date || '') || b.created - a.created);
+  const last = done.find(x => x.completed);
+  const recent = done.filter(x => x.completed).slice(0, 10);
+  const A = aggregate(recent);
+  const H = handicapIndex();
+  const hr = new Date().getHours();
+  const hello = hr < 12 ? 'Good morning' : hr < 17 ? 'Good afternoon' : 'Good evening';
+
+  let hero;
+  if (r) {
+    const hs = playedHoles(r), RA = aggregate([r]);
+    hero = `<div class="hero"><div class="hero-k">Round in progress</div><div class="hero-t">${esc(r.course || 'Round')}</div>
+      <div class="hero-s">${hs.length ? `Thru ${hs.length} · ${toPar(RA.strokes - RA.par)}${hasHcp(r) ? ' · ' + netTotals(r).pts + ' pts' : ''}` : 'Not started yet'}</div>
+      <button class="btn hero-btn" data-act="resume" data-v="${r.id}">Continue round ›</button></div>`;
+  } else {
+    const cs = allCourses().slice(0, 3);
+    hero = `<div class="hero"><div class="hero-k">${hello}</div><div class="hero-t">Ready to play?</div>
+      <button class="btn hero-btn" data-act="newRound">⛳ Start a round</button>
+      ${cs.length ? `<div class="hero-quick">${cs.map((c, i) => `<button data-act="quickStart" data-v="${i}">${esc(c.name)}</button>`).join('')}</div>` : ''}</div>`;
+  }
+
+  const tiles = `<div class="tiles home-tiles">
+    ${tile('Handicap index', H.index != null ? H.index.toFixed(1) : '–', H.index != null ? 'estimate' : 'needs 3 rated rounds')}
+    ${tile('Avg score', A.holes ? fmt1(A.per18(A.strokes)) : '–', A.rounds ? `last ${A.rounds} round${A.rounds > 1 ? 's' : ''}` : 'no rounds yet')}
+    ${tile('Scoring zone (SZIR)', fmtPct(A.sz, A.szN), `goal ${S.settings.szGoal}%`, A.szN ? (pct(A.sz, A.szN) >= S.settings.szGoal ? 'good' : 'bad') : '')}
+    ${tile('Down in 3', fmtPct(A.d3, A.d3N), `goal ${S.settings.d3Goal}%`, A.d3N ? (pct(A.d3, A.d3N) >= S.settings.d3Goal ? 'good' : 'bad') : '')}
+  </div>`;
+
+  const lastCard = last ? (() => {
+    const LA = aggregate([last]);
+    return `<div class="card"><h2>Last round <button class="btn sm" data-act="openRound" data-v="${last.id}">Scorecard ›</button></h2>
+      <div class="row between"><div><b>${esc(last.course || 'Round')}</b><div class="sub">${fmtDate(last.date)}</div></div>
+      <div style="text-align:right"><div class="big" style="font-size:28px;font-weight:800">${LA.strokes}</div><div class="sub">${toPar(LA.strokes - LA.par)}${hasHcp(last) ? ' · ' + netTotals(last).pts + ' pts' : ''}</div></div></div>
+      <div class="strip" style="margin-top:10px"><div><b>${LA.putts}</b><span>Putts</span></div><div><b>${fmtPct(LA.fir, LA.firN)}</b><span>Fairways</span></div><div><b>${fmtPct(LA.gir, LA.girN)}</b><span>Greens</span></div><div><b>${fmtPct(LA.sz, LA.szN)}</b><span>SZIR</span></div></div></div>`;
+  })() : '';
+
+  const focus = recent.length ? focusCard(A) : `<div class="card"><h2>How it works</h2><div class="sub">Start a round and the GPS map opens. Tap <b>Enter score</b> after each hole. Your stats, focus areas and handicap build up from there.</div></div>`;
+  return hero + tiles + lastCard + focus;
+}
+Object.assign(ACTIONS, {
+  newRound() { S.view = 'play'; S.activeId = null; S.draft = null; },
+  quickStart(v) { S.view = 'play'; S.activeId = null; S.draft = draftFrom(allCourses()[Number(v)], { date: localDate(), hcp: S.settings.hcp ?? '' }); },
+});
