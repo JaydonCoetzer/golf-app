@@ -699,7 +699,7 @@ function viewSettings() {
     <details class="help"><summary>Install on your phone</summary>
       <p><b>iPhone (Safari):</b> tap Share → <i>Add to Home Screen</i>.<br><b>Android (Chrome):</b> tap ⋮ → <i>Install app</i> / <i>Add to Home screen</i>.<br>After the first load it works offline, even with no signal on the course.</p>
     </details>
-    <div class="sub" style="margin-top:8px">Version 1.5</div>
+    <div class="sub" style="margin-top:8px">Version 1.6</div>
   </div>`;
 }
 
@@ -881,8 +881,8 @@ if ('serviceWorker' in navigator && location.protocol !== 'file:') {
       document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') reg.update().catch(() => {}); });
     }).catch(() => {});
     // When a new version takes over, reload once so the new look/code shows straight away (not mid-map).
-    let reloaded = false;
-    navigator.serviceWorker.addEventListener('controllerchange', () => { if (!reloaded && S.view !== 'map') { reloaded = true; location.reload(); } });
+    let reloaded = false; const hadController = !!navigator.serviceWorker.controller;
+    navigator.serviceWorker.addEventListener('controllerchange', () => { if (hadController && !reloaded && S.view !== 'map') { reloaded = true; location.reload(); } });
   });
 }
 if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});

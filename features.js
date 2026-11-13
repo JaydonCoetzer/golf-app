@@ -151,7 +151,8 @@ function viewHome() {
       <input type="search" data-bind="homeSearch" placeholder="Find a course to play" autocomplete="off"></label>
     <div id="homeResults"></div>
 
-    <div class="h-hcp"><svg class="h-golfer" viewBox="0 0 40 60" aria-hidden="true"><circle cx="24" cy="8" r="5"/><path d="M22 15l-6 14 4 2-3 26h5l4-20 5 20h5l-7-30 1-10 9-12-3-2-9 11z"/></svg>
+    <div class="h-title">Handicap</div>
+    <div class="h-hcp" data-act="goStats"><svg class="h-golfer" viewBox="0 0 40 60" aria-hidden="true"><circle cx="24" cy="8" r="5"/><path d="M22 15l-6 14 4 2-3 26h5l4-20 5 20h5l-7-30 1-10 9-12-3-2-9 11z"/></svg>
       <span>Handicap estimate</span><b>${H.index != null ? H.index.toFixed(1) : '–'}</b></div>
 
     <div class="h-trio">
@@ -160,6 +161,7 @@ function viewHome() {
       <div><b>${scores.length ? Math.min(...scores) : '–'}</b><span>Best score</span></div>
     </div>
 
+    <div class="h-title">Rounds</div>
     ${inprog ? (() => { const hs = playedHoles(inprog), RA = aggregate([inprog]);
       return `<button class="h-last live" data-act="resume" data-v="${inprog.id}"><div><small>In progress · thru ${hs.length}</small><b>${esc(inprog.course || 'Round')}</b></div><span class="h-score">${hs.length ? toPar(RA.strokes - RA.par) : '–'}</span></button>`; })() : ''}
     ${last ? `<button class="h-last" data-act="openRound" data-v="${last.id}"><div><small>Last round: ${shortDate(last.date)}</small><b>${esc(last.course || 'Round')}</b></div><span class="h-score">${lastScore}</span></button>` : ''}
