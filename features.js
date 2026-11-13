@@ -148,7 +148,7 @@ function viewHome() {
 
   return `<div class="home">
     <label class="h-search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" stroke-width="2"/><path d="M20 20l-4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-      <input type="search" data-bind="homeSearch" placeholder="Find a course to play" autocomplete="off"></label>
+      <input type="search" data-bind="homeSearch" placeholder="Find any course in South Africa" autocomplete="off"></label>
     <div id="homeResults"></div>
 
     <div class="h-title">Handicap</div>
@@ -182,17 +182,7 @@ function viewHome() {
       ${inprog ? 'Continue round' : 'Start a round'}</button>
   </div>`;
 }
-function homeResults(q) {
-  const el = $('#homeResults'); if (!el) return;
-  q = q.trim().toLowerCase();
-  if (!q) { el.innerHTML = ''; return; }
-  const names = new Map();
-  for (const c of allCourses()) names.set(c.name.toLowerCase(), c.name);
-  for (const r of S.rounds) if (r.course) names.set(r.course.trim().toLowerCase(), r.course.trim());
-  const hits = [...names.values()].filter(n => n.toLowerCase().includes(q)).slice(0, 6);
-  el.innerHTML = `<div class="h-results">${hits.map(n => `<button data-act="searchStart" data-v="${esc(n)}"><b>${esc(n)}</b><span>Play ›</span></button>`).join('')}
-    ${hits.some(n => n.toLowerCase() === q) ? '' : `<button data-act="searchStart" data-v="${esc(q.replace(/\b\w/g, c => c.toUpperCase()))}"><b>+ New course: “${esc(q)}”</b><span>Set up ›</span></button>`}</div>`;
-}
+function homeResults(q) { courseSearch(q, '#homeResults'); }
 
 /* ---------- golf bag ---------- */
 function viewBag() {

@@ -97,8 +97,8 @@ function benchFor(h) {
 }
 
 /* ---------- model ---------- */
-function newHole(n, par, si) {
-  return { n, par, si: si || null, score: null, putts: null, fw: null, szir: null, inZone: null, miss: null, ud: null, sand: null, ob: 0, water: 0, pen: 0, putt1: null, done: false };
+function newHole(n, par, si, len) {
+  return { n, par, si: si || null, len: len || null, score: null, putts: null, fw: null, szir: null, inZone: null, miss: null, ud: null, sand: null, ob: 0, water: 0, pen: 0, putt1: null, done: false };
 }
 function derive(h) {
   if (h.score == null) return null;
@@ -219,7 +219,7 @@ function newDraft() {
 }
 function draftFrom(c, base) {
   return { ...base, course: c ? c.name : '', tees: c ? c.tees || '' : '', count: c ? c.pars.length : 18,
-    pars: c ? [...c.pars, ...STD_PARS.slice(c.pars.length)] : [...STD_PARS], si: c && c.si ? [...c.si] : null, cr: c && c.cr ? c.cr : '', slope: c && c.slope ? c.slope : '' };
+    pars: c ? [...c.pars, ...STD_PARS.slice(c.pars.length)] : [...STD_PARS], si: c && c.si ? [...c.si] : null, len: c && c.len ? [...c.len] : null, center: c && c.center || null, cr: c && c.cr ? c.cr : '', slope: c && c.slope ? c.slope : '' };
 }
 function viewNewRound() {
   setTitle('New round');
@@ -240,8 +240,9 @@ function viewNewRound() {
     </div>
     <div>
       <label class="f" for="dCourse">Course</label>
-      <input id="dCourse" type="text" list="courseList" data-bind="course" value="${esc(d.course)}" placeholder="e.g. Royal Johannesburg East" autocomplete="off">
-      <datalist id="courseList">${S.courses.map(c => `<option value="${esc(c.name)}">`).join('')}</datalist>
+      <input id="dCourse" type="search" data-bind="course" value="${esc(d.course)}" placeholder="Search any South African course" autocomplete="off">
+      <div id="roundResults"></div>
+      ${d.status ? `<div class="cstatus ${d.status.busy ? 'busy' : d.status.warn ? 'warn' : d.status.ok ? 'ok' : ''}">${d.status.busy ? '<span class="spin"></span>' : ''}${esc(d.status.msg)}${d.status.retry ? ' <button class="chipbtn" data-act="retryCourse">Try again</button>' : ''}</div>` : ''}
     </div>
     <div class="grid2">
       <div><label class="f" for="dDate">Date</label><input id="dDate" type="date" data-bind="date" value="${esc(d.date)}"></div>
@@ -265,7 +266,7 @@ function viewNewRound() {
     <div>
       <div class="field-title"><span>Par for each hole (tap to change)</span><span>Par ${parTotal}</span></div>
       <div class="pargrid">${d.pars.slice(0, d.count).map((p, i) =>
-        `<button data-act="draftPar" data-v="${i}" class="p${p}"><small>${i + 1}</small><b>${p}</b>${d.si ? `<small>SI ${d.si[i]}</small>` : ''}${d.si && shotsGiven(d.hcp, d.si[i]) ? `<small class="dots">${'•'.repeat(shotsGiven(d.hcp, d.si[i]))}</small>` : ''}</button>`).join('')}</div>
+        `<button data-act="draftPar" data-v="${i}" class="p${p}"><small>${i + 1}</small><b>${p}</b>${d.si ? `<small>SI ${d.si[i]}</small>` : ''}${d.len && d.len[i] ? `<small>${fd(d.len[i])}</small>` : ''}${d.si && shotsGiven(d.hcp, d.si[i]) ? `<small class="dots">${'•'.repeat(shotsGiven(d.hcp, d.si[i]))}</small>` : ''}</button>`).join('')}</div>
       ${d.si ? `<div class="sub" style="margin-top:6px">SI = stroke index (1 = hardest).${d.hcp !== '' ? ' • = a shot you get on that hole.' : ''}</div>` : ''}
     </div>
     <button class="btn primary block" data-act="startRound">Tee off ⛳</button>
@@ -372,7 +373,7 @@ function viewHole() {
   ${nav}
   <div class="card">
     <div class="holehead">
-      <div><div class="hn">Hole ${h.n}</div>${historyLine(r, h)}<div class="sub">${h.si ? `SI ${h.si}` : ''}${hc ? ` · ${given ? `you get ${given} shot${given > 1 ? 's' : ''}` : 'no shot'}` : ''}${h.si ? ' · ' : ''}${h.done ? 'Saved' : 'Not saved'}</div></div>
+      <div><div class="hn">Hole ${h.n}</div>${historyLine(r, h)}<div class="sub">${h.len ? `${fd(h.len)} ${S.settings.unit} · ` : ''}${h.si ? `SI ${h.si}` : ''}${hc ? ` · ${given ? `you get ${given} shot${given > 1 ? 's' : ''}` : 'no shot'}` : ''}${h.si ? ' · ' : ''}${h.done ? 'Saved' : 'Not saved'}</div></div>
       ${seg('par', [[3, 'Par 3'], [4, 'Par 4'], [5, 'Par 5']], h.par)}
     </div>
     <div class="grid2">
@@ -700,7 +701,7 @@ function viewSettings() {
     <details class="help"><summary>Install on your phone</summary>
       <p><b>iPhone (Safari):</b> tap Share → <i>Add to Home Screen</i>.<br><b>Android (Chrome):</b> tap ⋮ → <i>Install app</i> / <i>Add to Home screen</i>.<br>After the first load it works offline, even with no signal on the course.</p>
     </details>
-    <div class="sub" style="margin-top:8px">Version 1.6</div>
+    <div class="sub" style="margin-top:8px">Version 1.7</div>
   </div>`;
 }
 
@@ -719,7 +720,9 @@ function saveRoundCourse(r) {
   const pars = r.holes.map(h => h.par);
   const si = r.holes.every(h => h.si) ? r.holes.map(h => h.si) : null;
   const i = S.courses.findIndex(c => c.name.toLowerCase() === name.toLowerCase() && c.pars.length === pars.length);
-  const c = { name, pars, si, tees: r.tees || '', cr: r.cr || null, slope: r.slope || null };
+  const prev = S.courses.find(x => x.name.toLowerCase() === name.toLowerCase()) || {};
+  const len = r.holes.some(h => h.len) ? r.holes.map(h => h.len || null) : prev.len || null;
+  const c = { name, pars, si, len, center: prev.center || null, tees: r.tees || '', cr: r.cr || null, slope: r.slope || null };
   if (i >= 0) S.courses.splice(i, 1);
   S.courses.unshift(c);
 }
@@ -742,7 +745,7 @@ const ACTIONS = {
   startRound() {
     const d = S.draft;
     const r = { id: uid(), created: Date.now(), date: d.date || localDate(), course: d.course.trim(), tees: d.tees.trim(), notes: '', completed: false,
-      holes: d.pars.slice(0, d.count).map((p, i) => newHole(i + 1, p, d.si && d.si[i])), hcp: d.hcp === '' ? null : Number(d.hcp), cr: Number(d.cr) || null, slope: Number(d.slope) || null };
+      holes: d.pars.slice(0, d.count).map((p, i) => newHole(i + 1, p, d.si && d.si[i], d.len && d.len[i])), hcp: d.hcp === '' ? null : Number(d.hcp), cr: Number(d.cr) || null, slope: Number(d.slope) || null };
     S.settings.hcp = d.hcp;
     S.rounds.push(r); S.activeId = r.id; S.hole = 0; S.draft = null; S.view = 'map'; window.scrollTo(0, 0);
     saveRoundCourse(r);
@@ -843,12 +846,9 @@ document.addEventListener('input', e => {
   if (k === 'bag') { S.settings.bag = S.settings.bag || {}; S.settings.bag[el.dataset.v] = el.value; persist(); return; }
   if (k === 'hcp' && S.draft) { S.draft.hcp = el.value; const pos = el.selectionStart; render(); const i = $('#dHcp'); i.focus(); try { i.setSelectionRange(pos, pos); } catch (e) {} return; }
   if (['course', 'date', 'tees'].includes(k) && S.draft) {
-    if (k === 'course') S.draft.si = null;
+    if (k === 'course') { S.draft.si = null; S.draft.len = null; S.draft.status = null; }
     S.draft[k] = el.value;
-    if (k === 'course') {
-      const c = allCourses().find(c => c.name.toLowerCase() === el.value.trim().toLowerCase());
-      if (c) { S.draft = draftFrom(c, { date: S.draft.date, hcp: S.draft.hcp }); render(); const i = $('#dCourse'); i.focus(); i.setSelectionRange(i.value.length, i.value.length); }
-    }
+    if (k === 'course') courseSearch(el.value, '#roundResults');
     return;
   }
   if (k === 'notes') { const r = S.rounds.find(r => r.id === el.dataset.v); if (r) { r.notes = el.value; persist(); } return; }

@@ -456,3 +456,14 @@ input[type=text], input[type=date], input[type=number], select, textarea { borde
 .ins-foot button { border-color: var(--brand-2); color: var(--brand-2); }
 .bb i { background: var(--brand-2); }
 #toast { background: rgba(22,24,29,.92); }
+.hr-n { display: flex; flex-direction: column; text-align: left; }
+.hr-n small { color: var(--muted); font-size: 12.5px; font-weight: 500; }
+.hr-msg { padding: 12px 14px; color: var(--muted); font-size: 14px; }
+#roundResults .h-results { margin-top: 8px; }
+.cstatus { margin-top: 10px; padding: 10px 12px; border-radius: 12px; font-size: 14px; background: var(--surface-2); display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.cstatus.ok { background: color-mix(in srgb, var(--good) 12%, var(--surface)); color: var(--good); }
+.cstatus.warn { background: color-mix(in srgb, var(--accent) 16%, var(--surface)); }
+.spin { width: 16px; height: 16px; border: 2px solid var(--line); border-top-color: var(--brand-2); border-radius: 50%; animation: sp .8s linear infinite; flex: 0 0 auto; }
+@keyframes sp { to { transform: rotate(360deg); } }
+.pargrid button small + small { font-size: 9px; }
+#dCourse { width: 100%; padding: 11px 12px; border-radius: 10px; border: 0; background: var(--surface-2); font-size: 16px; -webkit-appearance: none; appearance: none; }

@@ -286,6 +286,7 @@ function mapOverlays() {
   $('#mapLeft').innerHTML = `
     <div class="mp-k">Hole</div><div class="mp-v">${h.n}</div>
     <div class="mp-k">Par</div><div class="mp-v">${h.par}</div>
+    ${h.len ? `<div class="mp-k">Length</div><div class="mp-s">${fd(h.len)}</div>` : ''}
     ${h.si ? `<div class="mp-k">SI</div><div class="mp-v">${h.si}${given ? `<span class="dots">${'•'.repeat(given)}</span>` : ''}</div>` : ''}
     <button class="mp-btn" data-act="sheet" data-v="shots">⛳<span>Shots${(h.shots || []).length ? ' ' + h.shots.length : ''}</span></button>
     <button class="mp-btn" data-act="sheet" data-v="insights">📈<span>Insights</span></button>
