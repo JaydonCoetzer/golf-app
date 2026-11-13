@@ -3,7 +3,7 @@
    All data lives in this browser's localStorage. Use More → Backup to export. */
 
 const KEYS = { rounds: 'gs.rounds', courses: 'gs.courses', settings: 'gs.settings', active: 'gs.active' };
-const DEFAULT_SETTINGS = { hcp: '', zone: 100, unit: 'm', target: 15, szGoal: 70, d3Goal: 70, theme: 'auto' };
+const DEFAULT_SETTINGS = { hcp: '', zone: 100, unit: 'm', target: 15, szGoal: 70, d3Goal: 70, theme: 'light' };
 const STD_PARS = [4, 4, 3, 4, 5, 4, 3, 4, 5, 4, 4, 3, 4, 5, 4, 3, 4, 5];
 /* Built-in course cards. Par and stroke index (men's) from public scorecards; check against the club card. */
 const BUILTIN_COURSES = [
@@ -42,6 +42,7 @@ const S = {
   detailId: null,
   draft: null,
 };
+if (!S.settings.themeV2) { S.settings.theme = 'light'; S.settings.themeV2 = true; }
 function persist() {
   save(KEYS.rounds, S.rounds); save(KEYS.courses, S.courses);
   save(KEYS.settings, S.settings); save(KEYS.active, S.activeId);
@@ -698,7 +699,7 @@ function viewSettings() {
     <details class="help"><summary>Install on your phone</summary>
       <p><b>iPhone (Safari):</b> tap Share → <i>Add to Home Screen</i>.<br><b>Android (Chrome):</b> tap ⋮ → <i>Install app</i> / <i>Add to Home screen</i>.<br>After the first load it works offline, even with no signal on the course.</p>
     </details>
-    <div class="sub" style="margin-top:8px">Version 1.4</div>
+    <div class="sub" style="margin-top:8px">Version 1.5</div>
   </div>`;
 }
 

@@ -206,7 +206,7 @@ function initMap() {
 function stopMap() {
   if (M.watch != null) { navigator.geolocation.clearWatch(M.watch); M.watch = null; }
   if (M.wake) { M.wake.release().catch(() => {}); M.wake = null; }
-  if (M.map) { M.map.remove(); M.map = null; M.layer = null; }
+  if (M.map) { try { M.map.stop(); M.map.off(); M.map.remove(); } catch (e) {} M.map = null; M.layer = null; }
   M.target = null; M.setFlag = false; M.sheet = null;
 }
 function startGps() {
@@ -233,9 +233,9 @@ function fitHole() {
   const pts = [];
   if (g) { pts.push(g.c); if (g.tee) pts.push(g.tee); }
   if (M.me && (!g || dist(M.me, g.c) < 700)) pts.push(M.me);
-  if (pts.length > 1) M.map.fitBounds(pts, { padding: [70, 40], maxZoom: 19 });
-  else if (pts.length === 1) M.map.setView(pts[0], g ? 18 : 17);
-  else if (courseGeo().center) M.map.setView(courseGeo().center, 16);
+  if (pts.length > 1) M.map.fitBounds(pts, { padding: [70, 40], maxZoom: 19, animate: false });
+  else if (pts.length === 1) M.map.setView(pts[0], g ? 18 : 17, { animate: false });
+  else if (courseGeo().center) M.map.setView(courseGeo().center, 16, { animate: false });
 }
 
 /* ---------- drawing ---------- */
@@ -371,7 +371,7 @@ async function autoFind(force) {
   const center = (M.me && (!geo.center || dist(M.me, geo.center) < 3000)) ? M.me : await geocodeCourse();
   if (!center) { if (force) toast('Could not find the course. Set greens by hand.'); return; }
   M.finding = true;
-  if (M.map && !Object.keys(geo.holes).length) M.map.setView(center, 16);
+  if (M.map && !Object.keys(geo.holes).length) M.map.setView(center, 16, { animate: false });
   try {
     const q = `[out:json][timeout:25];(way["golf"="green"](around:2500,${center[0]},${center[1]});way["golf"="hole"](around:2500,${center[0]},${center[1]});way["golf"="bunker"](around:2500,${center[0]},${center[1]});way["natural"="water"](around:2500,${center[0]},${center[1]});way["golf"~"water_hazard|lateral_water_hazard"](around:2500,${center[0]},${center[1]}););out geom;`;
     const res = await fetch('https://overpass-api.de/api/interpreter', { method: 'POST', body: 'data=' + encodeURIComponent(q), headers: { 'Content-Type': 'application/x-www-form-urlencoded' } });
