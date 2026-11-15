@@ -13,6 +13,7 @@ const MISHITS = [['good', 'Good'], ['topped', 'Topped'], ['fat', 'Fat'], ['thin'
 const ESRI = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
 
 S.geo = load('gs.geo', {});
+if (S.geo['parow golf club'] && !S.geo['parow golf course']) S.geo['parow golf course'] = S.geo['parow golf club'];
 const saveGeo = () => save('gs.geo', S.geo);
 const M = { map: null, layer: null, me: null, acc: null, watch: null, target: null, setFlag: false, club: 'Dr', wake: null, fittedMe: false, finding: false, lastShot: null };
 

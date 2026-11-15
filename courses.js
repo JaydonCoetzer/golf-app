@@ -47,8 +47,8 @@ function courseFromFile(f, name) {
   const pars = [], si = [], len = []; let fp = 0, fs = 0;
   for (let n = 1; n <= count; n++) {
     const h = byN[n], ep = existing && existing.pars[n - 1], es = existing && existing.si && existing.si[n - 1];
-    pars.push(ep || (h && h.par) || (h && h.len ? (h.len < 230 ? 3 : h.len > 430 ? 5 : 4) : STD_PARS[n - 1]));
-    si.push(es || (h && h.si) || null); len.push(h ? h.len : null);
+    pars.push((h && h.par) || ep || (h && h.len ? (h.len < 230 ? 3 : h.len > 430 ? 5 : 4) : STD_PARS[n - 1]));
+    si.push((h && h.si) || es || null); len.push(h ? h.len : null);
     if (h && h.par) fp++; if (h && h.si) fs++;
   }
   const course = Object.assign({}, existing || {}, { name, pars, si: si.every(Boolean) ? si : (existing && existing.si) || null, len, center: f.center });

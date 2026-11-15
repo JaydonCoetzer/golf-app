@@ -7,8 +7,8 @@ const DEFAULT_SETTINGS = { hcp: '', zone: 100, unit: 'm', target: 15, szGoal: 70
 const STD_PARS = [4, 4, 3, 4, 5, 4, 3, 4, 5, 4, 4, 3, 4, 5, 4, 3, 4, 5];
 /* Built-in course cards. Par and stroke index (men's) from public scorecards; check against the club card. */
 const BUILTIN_COURSES = [
-  { name: 'Parow Golf Club', area: 'Parow, Cape Town',
-    pars: [4, 3, 5, 4, 4, 5, 3, 4, 4, 4, 3, 5, 4, 4, 5, 3, 4, 4],
+  { name: 'Parow Golf Course', area: 'Parow, Cape Town',
+    pars: [4, 3, 5, 4, 4, 5, 3, 4, 4, 4, 4, 5, 3, 4, 4, 5, 3, 4],
     si:   [9, 13, 5, 15, 11, 1, 17, 7, 3, 16, 12, 2, 18, 8, 4, 10, 14, 6] },
 ];
 const PUTT_BUCKETS = ['0–1', '1–2', '2–4', '4–8', '8+'];
@@ -42,6 +42,8 @@ const S = {
   detailId: null,
   draft: null,
 };
+for (const c of S.courses) if (/^parow golf (club|course)$/i.test(c.name) && c.pars && c.pars.join() === '4,3,5,4,4,5,3,4,4,4,3,5,4,4,5,3,4,4') { c.pars = [4, 3, 5, 4, 4, 5, 3, 4, 4, 4, 4, 5, 3, 4, 4, 5, 3, 4]; c.name = 'Parow Golf Course'; }
+for (const r of S.rounds) if (/^parow golf club$/i.test(r.course || '')) r.course = 'Parow Golf Course';
 if (!S.settings.themeV2) { S.settings.theme = 'light'; S.settings.themeV2 = true; }
 function persist() {
   save(KEYS.rounds, S.rounds); save(KEYS.courses, S.courses);
