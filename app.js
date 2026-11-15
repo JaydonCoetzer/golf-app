@@ -191,6 +191,7 @@ function render() {
   else if (S.view === 'stats') m.innerHTML = viewStats();
   else if (S.view === 'bag') m.innerHTML = viewBag();
   else m.innerHTML = viewSettings();
+  if ($('#nearby')) { paintNearby(); if (!CD.autoTried) { CD.autoTried = true; loadNearby(); } }
   if (S.view === 'play' && activeRound()) {
     const cur = $('.hchip.cur'); if (cur) cur.scrollIntoView({ block: 'nearest', inline: 'center' });
   }
@@ -219,7 +220,7 @@ function newDraft() {
 }
 function draftFrom(c, base) {
   return { ...base, course: c ? c.name : '', tees: c ? c.tees || '' : '', count: c ? c.pars.length : 18,
-    pars: c ? [...c.pars, ...STD_PARS.slice(c.pars.length)] : [...STD_PARS], si: c && c.si ? [...c.si] : null, len: c && c.len ? [...c.len] : null, center: c && c.center || null, cr: c && c.cr ? c.cr : '', slope: c && c.slope ? c.slope : '' };
+    pars: c ? [...c.pars, ...STD_PARS.slice(c.pars.length)] : [...STD_PARS], si: c && c.si ? [...c.si] : null, len: c && c.len ? [...c.len] : null, center: c && c.center || null, teeSets: c && c.teeSets || null, teeIdx: c && c.teeIdx != null ? c.teeIdx : null, cr: c && c.cr ? c.cr : '', slope: c && c.slope ? c.slope : '' };
 }
 function viewNewRound() {
   setTitle('New round');
@@ -232,6 +233,7 @@ function viewNewRound() {
     const hs = playedHoles(r);
     return `<button class="list-item" data-act="resume" data-v="${r.id}"><div><b>${esc(r.course || 'Round')}</b><div class="sub">${fmtDate(r.date)} · thru ${hs.length}</div></div><span class="btn sm primary">Resume</span></button>`;
   }).join('')}</div>` : ''}
+  ${d.course ? '' : '<div id="nearby" style="margin-bottom:12px"></div>'}
   <div class="card stack">
     <div>
       <div class="field-title"><span>Pick a course</span></div>
@@ -244,6 +246,7 @@ function viewNewRound() {
       <div id="roundResults"></div>
       ${d.status ? `<div class="cstatus ${d.status.busy ? 'busy' : d.status.warn ? 'warn' : d.status.ok ? 'ok' : ''}">${d.status.busy ? '<span class="spin"></span>' : ''}${esc(d.status.msg)}${d.status.retry ? ' <button class="chipbtn" data-act="retryCourse">Try again</button>' : ''}</div>` : ''}
     </div>
+    ${teeChooser(d)}
     <div class="grid2">
       <div><label class="f" for="dDate">Date</label><input id="dDate" type="date" data-bind="date" value="${esc(d.date)}"></div>
       <div><label class="f" for="dTees">Tees</label><input id="dTees" type="text" data-bind="tees" value="${esc(d.tees)}" placeholder="e.g. White"></div>
@@ -673,6 +676,7 @@ function viewSettings() {
     <h2>Appearance</h2>
     ${seg('theme', [['auto', 'Auto'], ['light', 'Light'], ['dark', 'Dark']], s.theme)}
   </div>
+  ${gcaCard()}
   <button class="btn block" style="margin-bottom:12px" data-act="goBag">🏌️ Golf bag: club distances ›</button>
   <div class="card">
     <h2>Saved courses</h2>
@@ -701,7 +705,7 @@ function viewSettings() {
     <details class="help"><summary>Install on your phone</summary>
       <p><b>iPhone (Safari):</b> tap Share → <i>Add to Home Screen</i>.<br><b>Android (Chrome):</b> tap ⋮ → <i>Install app</i> / <i>Add to Home screen</i>.<br>After the first load it works offline, even with no signal on the course.</p>
     </details>
-    <div class="sub" style="margin-top:8px">Version 1.7</div>
+    <div class="sub" style="margin-top:8px">Version 1.8</div>
   </div>`;
 }
 
@@ -722,7 +726,7 @@ function saveRoundCourse(r) {
   const i = S.courses.findIndex(c => c.name.toLowerCase() === name.toLowerCase() && c.pars.length === pars.length);
   const prev = S.courses.find(x => x.name.toLowerCase() === name.toLowerCase()) || {};
   const len = r.holes.some(h => h.len) ? r.holes.map(h => h.len || null) : prev.len || null;
-  const c = { name, pars, si, len, center: prev.center || null, tees: r.tees || '', cr: r.cr || null, slope: r.slope || null };
+  const c = { name, pars, si, len, center: prev.center || null, teeSets: prev.teeSets, teeIdx: prev.teeIdx, tees: r.tees || '', cr: r.cr || null, slope: r.slope || null };
   if (i >= 0) S.courses.splice(i, 1);
   S.courses.unshift(c);
 }
@@ -841,6 +845,7 @@ document.addEventListener('input', e => {
   const el = e.target.closest('[data-bind]'); if (!el) return;
   const k = el.dataset.bind;
   if ((k === 'cr' || k === 'slope') && S.draft) { S.draft[k] = el.value; return; }
+  if (k === 'gcaKey') { S.settings.gcaKey = el.value.trim(); persist(); return; }
   if (k === 'homeSearch') { homeResults(el.value); return; }
   if (k === 'holeNote') { const g = courseGeo(); g.notes = g.notes || {}; g.notes[curHole().n] = el.value; saveGeo(); return; }
   if (k === 'bag') { S.settings.bag = S.settings.bag || {}; S.settings.bag[el.dataset.v] = el.value; persist(); return; }

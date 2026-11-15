@@ -467,3 +467,9 @@ input[type=text], input[type=date], input[type=number], select, textarea { borde
 @keyframes sp { to { transform: rotate(360deg); } }
 .pargrid button small + small { font-size: 9px; }
 #dCourse { width: 100%; padding: 11px 12px; border-radius: 10px; border: 0; background: var(--surface-2); font-size: 16px; -webkit-appearance: none; appearance: none; }
+.nb-card { background: var(--surface); border-radius: 16px; box-shadow: var(--shadow); overflow: hidden; }
+.nb-h { display: flex; align-items: center; justify-content: space-between; padding: 12px 14px 6px; font-weight: 700; font-size: 16px; }
+.nb-r { border: 0; background: var(--surface-2); border-radius: 999px; width: 30px; height: 30px; font-size: 16px; }
+.nb-row { display: flex; justify-content: space-between; width: 100%; padding: 12px 14px; border: 0; border-top: 1px solid var(--line); background: none; text-align: left; font-size: 15px; }
+.nb-row span { color: var(--brand-2); font-weight: 650; white-space: nowrap; margin-left: 8px; }
+.hr-msg { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
