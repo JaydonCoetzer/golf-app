@@ -37,18 +37,20 @@ function inPoly(p, poly) {
 const slug = s => s.toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 60);
 
 console.log('Fetching courses…');
-const cj = await overpass(`[out:json][timeout:300];${AREA}(way["leisure"="golf_course"](area.za);relation["leisure"="golf_course"](area.za););out tags center bb;`);
+const cj = await overpass(`[out:json][timeout:300];${AREA}(way["leisure"="golf_course"](area.za);relation["leisure"="golf_course"](area.za););out tags bb;`);
+console.log('course elements:', cj.elements.length);
 const courses = [];
 for (const e of cj.elements) {
-  if (!e.bounds || !e.center) continue;
+  if (!e.bounds) continue;
   const b = e.bounds, pad = 0.0015;
-  courses.push({ osm: `${e.type[0]}${e.id}`, name: ((e.tags && e.tags.name) || '').trim(), tags: e.tags || {}, center: pt(e.center),
+  courses.push({ osm: `${e.type[0]}${e.id}`, name: ((e.tags && e.tags.name) || '').trim(), tags: e.tags || {}, center: [R((b.minlat + b.maxlat) / 2), R((b.minlon + b.maxlon) / 2)],
     bb: [b.minlat - pad, b.minlon - pad, b.maxlat + pad, b.maxlon + pad], area: (b.maxlat - b.minlat) * (b.maxlon - b.minlon), holes: [], greens: [], hazards: [] });
 }
 console.log(courses.length, 'courses');
 
 console.log('Fetching golf features…');
 const fj = await overpass(`[out:json][timeout:600];${AREA}(way["golf"~"^(hole|green|bunker|water_hazard|lateral_water_hazard)$"](area.za););out geom;`);
+console.log('golf features:', fj.elements.length);
 console.log('Fetching water inside courses…');
 const wj = await overpass(`[out:json][timeout:300];${AREA}way["leisure"="golf_course"](area.za)->.gc;.gc map_to_area->.ga;way["natural"="water"](area.ga);out geom;`)
   .catch(e => { console.warn('water query failed:', e.message); return { elements: [] }; });
