@@ -1,0 +1,23 @@
+name: Update course database
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '17 3 2 1 *'   # once a year, 2 January 03:17 UTC
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: node tools/build-courses.mjs
+      - name: Commit if changed
+        run: |
+          git config user.name "course-database-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add data/za
+          if git diff --cached --quiet; then echo "No changes"; else git commit -m "Update South African course database" && git push; fi
