@@ -23,6 +23,40 @@ async function overpass(q) {
 }
 
 
+/* ---------- bundled course database (data/za, built yearly from OpenStreetMap) ---------- */
+let DBP = null;
+function loadDB() {
+  if (!DBP) DBP = fetch('data/za/index.json').then(r => r.json()).then(j => (CD.db = (j && j.courses) || [])).catch(() => { DBP = null; return CD.db || []; });
+  return DBP;
+}
+async function loadCourseFile(id) {
+  const r = await fetch('data/za/' + encodeURIComponent(id) + '.json'); if (!r.ok) throw new Error('missing');
+  return r.json();
+}
+/* Turn a database file into a saved course + GPS layout. */
+function courseFromFile(f, name) {
+  const key = name.trim().toLowerCase();
+  const geo = (S.geo[key] = S.geo[key] || { holes: {}, greens: [] });
+  geo.center = f.center; geo.greens = f.greens || []; geo.hazards = f.hazards || []; geo.tried = true; geo.hz = true;
+  for (const h of f.holes) if (!(geo.holes[h.n] && geo.holes[h.n].manual)) geo.holes[h.n] = Object.assign({}, h.green, { tee: h.tee });
+  saveGeo();
+  const byN = Object.fromEntries(f.holes.map(h => [h.n, h]));
+  const count = f.holes.length >= 10 || f.holes.some(h => h.n > 9) ? 18 : f.holes.length ? 9 : 0;
+  if (!count) return { holes: 0 };
+  const existing = S.courses.find(c => sameCourse(c.name, name)) || BUILTIN_COURSES.find(c => sameCourse(c.name, name));
+  const pars = [], si = [], len = []; let fp = 0, fs = 0;
+  for (let n = 1; n <= count; n++) {
+    const h = byN[n], ep = existing && existing.pars[n - 1], es = existing && existing.si && existing.si[n - 1];
+    pars.push(ep || (h && h.par) || (h && h.len ? (h.len < 230 ? 3 : h.len > 430 ? 5 : 4) : STD_PARS[n - 1]));
+    si.push(es || (h && h.si) || null); len.push(h ? h.len : null);
+    if (h && h.par) fp++; if (h && h.si) fs++;
+  }
+  const course = Object.assign({}, existing || {}, { name, pars, si: si.every(Boolean) ? si : (existing && existing.si) || null, len, center: f.center });
+  const i = S.courses.findIndex(c => sameCourse(c.name, name)); if (i >= 0) S.courses.splice(i, 1);
+  S.courses.unshift(course); persist();
+  return { holes: count, found: { par: fp, si: fs, len: f.holes.length }, course };
+}
+
 /* ---------- GolfCourseAPI (optional free key) ---------- */
 async function gcaFetch(path) {
   const key = (S.settings.gcaKey || '').trim(); if (!key) return null;
@@ -64,7 +98,9 @@ async function loadNearby(force) {
   try {
     const me = await here();
     const fresh = CD.nearby && Date.now() - CD.nearby.at < 864e5 && dist(me, CD.nearby.me) < 5000;
-    if (force || !fresh) {
+    const db = await loadDB();
+    if (db.length) { CD.nearby = { at: Date.now(), me, list: db.map(c => ({ name: c.name, id: c.id, center: c.c, h: c.h })) }; }
+    else if (force || !fresh) {
       const j = await overpass(`[out:json][timeout:25];nwr["leisure"="golf_course"]["name"](around:40000,${me[0]},${me[1]});out tags center;`);
       const seen = new Set(), list = [];
       for (const e of j.elements) {
@@ -85,7 +121,7 @@ function paintNearby() {
   const list = N.list.map(c => ({ ...c, km: dist(N.me, c.center) / 1000 })).sort((a, b) => a.km - b.km).slice(0, 6);
   CD.nearHits = list;
   el.innerHTML = `<div class="nb-card"><div class="nb-h">Courses near you ${CD.nearbyBusy ? '<span class="spin"></span>' : '<button class="nb-r" data-act="nearbyRefresh" aria-label="Refresh">↻</button>'}</div>
-    ${list.length ? list.map((c, i) => `<button class="nb-row" data-act="pickNear" data-v="${i}"><b>${esc(c.name)}</b><span>${c.km < 1 ? 'here' : c.km.toFixed(c.km < 10 ? 1 : 0) + ' km'} ›</span></button>`).join('') : '<div class="hr-msg">No golf courses found within 40 km.</div>'}</div>`;
+    ${list.length ? list.map((c, i) => `<button class="nb-row" data-act="pickNear" data-v="${i}"><span class="hr-n"><b>${esc(c.name)}</b>${c.h ? `<small>${c.h} holes mapped</small>` : ''}</span><span>${c.km < 1 ? 'here' : c.km.toFixed(c.km < 10 ? 1 : 0) + ' km'} ›</span></button>`).join('') : '<div class="hr-msg">No golf courses found within 40 km.</div>'}</div>`;
 }
 
 /* ---------- search ---------- */
@@ -93,13 +129,19 @@ function courseSearch(q, sel) {
   const el = $(sel); if (!el) return;
   CD.q = q.trim(); CD.sel = sel;
   if (!CD.q) { el.innerHTML = ''; return; }
+  if (!CD.db) loadDB().then(() => { if (CD.q) paintSearch(sel, true); });
   paintSearch(sel, true);
   clearTimeout(CD.timer);
   CD.timer = setTimeout(() => remoteSearch(CD.q, sel), 450);
 }
 function localHits(q) {
   const words = q.toLowerCase().split(/\s+/), match = n => words.every(w => n.toLowerCase().includes(w));
-  return allCourses().filter(c => match(c.name)).map(c => ({ name: c.name, saved: true, holes: c.pars.length, center: c.center || null, rated: !!(c.teeSets && c.teeSets.some(t => t.slope)) || !!c.slope }));
+  const saved = allCourses().filter(c => match(c.name)).map(c => ({ name: c.name, saved: true, holes: c.pars.length, center: c.center || null, rated: !!(c.teeSets && c.teeSets.some(t => t.slope)) || !!c.slope }));
+  const me = CD.nearby && CD.nearby.me;
+  const db = (CD.db || []).filter(c => match(c.name + ' ' + (c.town || '')) && !saved.some(x => sameCourse(x.name, c.name)))
+    .map(c => ({ name: c.name, id: c.id, center: c.c, town: c.town, mapped: c.h, km: me ? dist(me, c.c) / 1000 : null }))
+    .sort((a, b) => (b.mapped >= 9) - (a.mapped >= 9) || (a.km ?? 1e9) - (b.km ?? 1e9));
+  return [...saved, ...db];
 }
 async function remoteSearch(q, sel) {
   const [osm, gca] = await Promise.all([
@@ -127,7 +169,7 @@ function paintSearch(sel, busy) {
   const remote = CD.remote && CD.remote.q === CD.q ? CD.remote.hits.filter(h => !local.some(l => l.name.toLowerCase() === h.name.toLowerCase())) : [];
   CD.hits = [...local, ...remote].slice(0, 10);
   const titled = CD.q.replace(/\b\w/g, c => c.toUpperCase());
-  el.innerHTML = `<div class="h-results">${CD.hits.map((h, i) => `<button data-act="pickHit" data-v="${i}"><span class="hr-n"><b>${esc(h.name)}</b><small>${h.saved ? `Saved · ${h.holes} holes` : esc(h.town || 'South Africa')}${h.rated ? ' · rating & slope' : ''}${h.km != null ? ` · ${h.km.toFixed(h.km < 10 ? 1 : 0)} km` : ''}</small></span><span>Play ›</span></button>`).join('')}
+  el.innerHTML = `<div class="h-results">${CD.hits.map((h, i) => `<button data-act="pickHit" data-v="${i}"><span class="hr-n"><b>${esc(h.name)}</b><small>${h.saved ? `Saved · ${h.holes} holes` : esc(h.town || 'South Africa')}${h.mapped ? ` · ${h.mapped} holes mapped` : ''}${h.rated ? ' · rating & slope' : ''}${h.km != null ? ` · ${h.km.toFixed(h.km < 10 ? 1 : 0)} km` : ''}</small></span><span>Play ›</span></button>`).join('')}
     ${busy ? '<div class="hr-msg"><span class="spin"></span> Searching courses…</div>' : !CD.hits.length ? '<div class="hr-msg">No course found with that name. Try fewer words, e.g. "Royal Cape".</div>' : ''}
     <button data-act="pickNew" data-v="${esc(titled)}"><span class="hr-n"><b>+ Create “${esc(titled)}” myself</b><small>Only if it isn't listed</small></span><span>›</span></button></div>`;
 }
@@ -225,7 +267,10 @@ async function chooseCourse(hit) {
   const teeSets = gc ? gcaTeeSets(gc) : [];
   // 2) layout for GPS (+ par/SI/length if the card had none)
   let osm = null;
-  if (center) { try { osm = await fetchCourseCard(name, center); } catch (e) {} }
+  let id = hit.id;
+  if (!id) { const db = await loadDB(); const m = db.find(c => sameCourse(c.name, name) || (center && dist(c.c, center) < 1500 && c.h)); if (m) id = m.id; }
+  if (id) { try { osm = courseFromFile(await loadCourseFile(id), name); } catch (e) {} }
+  if ((!osm || !osm.holes) && center) { try { osm = await fetchCourseCard(name, center); } catch (e) {} }
   if (!S.draft || !sameCourse(S.draft.course, name)) return;
 
   const keep = { date: S.draft.date, hcp: S.draft.hcp };
@@ -240,8 +285,8 @@ async function chooseCourse(hit) {
   } else if (osm && osm.holes) {
     S.draft = draftFrom(osm.course, keep); S.draft.course = name;
     const f = osm.found, miss = [];
-    if (f.par < osm.holes) miss.push('some pars');
-    if (f.si < osm.holes) miss.push('stroke index');
+    if (f.par < osm.holes && !existing) miss.push('some pars (guessed from length)');
+    if (!S.draft.si) miss.push('stroke index');
     miss.push('rating & slope');
     S.draft.status = { msg: `Loaded ${osm.holes} holes with GPS greens. Missing: ${miss.join(', ')}.${S.settings.gcaKey ? '' : ' Add a free course-database key under More to get rating & slope automatically.'}`, warn: true };
   } else if (existing) {
