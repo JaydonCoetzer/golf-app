@@ -140,11 +140,15 @@ function recommendClub(m) {
 
 /* ---------- hazards ahead (from OpenStreetMap bunkers / water) ---------- */
 function hazardsAhead() {
-  const h = curHole(), g = holeGeo(h.n), hz = courseGeo().hazards || [];
-  if (!M.me || !g || !hz.length) return [];
-  const lat0 = M.me[0], k = Math.cos(lat0 * Math.PI / 180) * 111320;
-  const xy = p => [(p[1] - M.me[1]) * k, (p[0] - lat0) * 110540];
-  const G = xy(g.c), L = Math.hypot(G[0], G[1]); if (L < 30) return [];
+  const h = curHole(), g = holeGeo(h.n);
+  return M.me && g ? hazardsBetween(M.me, g.c, courseGeo().hazards || []) : [];
+}
+/* Bunkers / water within 40 m either side of the line from `from` to `to`: distance to reach and to carry each. */
+function hazardsBetween(from, to, hz, max = 3) {
+  if (!hz.length) return [];
+  const lat0 = from[0], k = Math.cos(lat0 * Math.PI / 180) * 111320;
+  const xy = p => [(p[1] - from[1]) * k, (p[0] - lat0) * 110540];
+  const G = xy(to), L = Math.hypot(G[0], G[1]); if (L < 30) return [];
   const ux = G[0] / L, uy = G[1] / L;
   const out = [];
   for (const z of hz) {
@@ -155,7 +159,7 @@ function hazardsAhead() {
     }
     if (hit && far - near > 2) out.push({ t: z.t, near, far, side: Math.abs(side) < 5 * z.poly.length ? 'middle' : side > 0 ? 'right' : 'left' });
   }
-  return out.sort((a, b) => a.near - b.near).slice(0, 3);
+  return out.sort((a, b) => a.near - b.near).slice(0, max);
 }
 
 /* ---------- Leaflet loading ---------- */

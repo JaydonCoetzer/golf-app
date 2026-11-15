@@ -473,3 +473,25 @@ input[type=text], input[type=date], input[type=number], select, textarea { borde
 .nb-row { display: flex; justify-content: space-between; width: 100%; padding: 12px 14px; border: 0; border-top: 1px solid var(--line); background: none; text-align: left; font-size: 15px; }
 .nb-row span { color: var(--brand-2); font-weight: 650; white-space: nowrap; margin-left: 8px; }
 .hr-msg { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+/* course preview */
+#pvWrap { position: relative; height: 52dvh; margin: -16px -16px 12px; background: #1b2a22; isolation: isolate; z-index: 0; }
+#pvMap { position: absolute; inset: 0; }
+.pv-top { position: absolute; z-index: 600; top: 10px; left: 10px; display: flex; gap: 2px; background: rgba(255,255,255,.95); border-radius: 14px; padding: 6px 4px; box-shadow: 0 4px 16px rgba(0,0,0,.25); }
+.pv-top div { text-align: center; min-width: 52px; }
+.pv-top small { display: block; font-size: 11px; color: var(--muted); font-weight: 650; }
+.pv-top b { font-size: 20px; }
+.pv-target { position: absolute; z-index: 600; left: 10px; right: 10px; bottom: 12px; background: rgba(255,255,255,.96); border-radius: 12px; padding: 8px 12px; font-size: 14px; display: flex; align-items: center; gap: 6px; box-shadow: 0 4px 16px rgba(0,0,0,.25); }
+.pv-nav { position: absolute; z-index: 600; top: 50%; transform: translateY(-50%); width: 44px; height: 64px; border: 0; background: rgba(255,255,255,.92); font-size: 30px; font-weight: 700; color: var(--text); box-shadow: 0 4px 16px rgba(0,0,0,.25); }
+.pv-nav.l { left: 0; border-radius: 0 12px 12px 0; }
+.pv-nav.r { right: 0; border-radius: 12px 0 0 12px; }
+.pv-nav:disabled { opacity: .3; }
+.pv-d { display: flex; justify-content: center; gap: 18px; margin-bottom: 8px; text-align: center; }
+.pv-d small { display: block; font-size: 12px; color: var(--muted); font-weight: 650; }
+.pv-d b { font-size: 22px; }
+.pv-d .mid b { font-size: 32px; color: var(--brand-2); }
+.pv-card td, .pv-card th { padding: 6px 3px; font-size: 12.5px; }
+.pv-card td.cur { background: color-mix(in srgb, var(--brand-2) 14%, transparent); font-weight: 800; }
+.pv-card tr.pv-sub td { color: var(--muted); font-weight: 700; cursor: pointer; }
+#pvWrap .leaflet-control-attribution { font-size: 9px; }
+.pv-target { bottom: 26px; }

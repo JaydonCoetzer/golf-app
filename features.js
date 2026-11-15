@@ -83,6 +83,7 @@ function viewCourse() {
     ${tile('Best-ever card', eclN ? ecl : '–', eclN ? `${toPar(ecl - eclPar)} · your best score on every hole` : '')}
     ${tile('Hardest for you', hardest[0] ? 'Hole ' + hardest[0].n : '–', hardest[0] ? `avg ${toPar(Math.round(hardest[0].diff * 10) / 10)} over par` : '')}
   </div></div>
+  <button class="btn block" style="margin-bottom:12px" data-act="pvOpen" data-v="${esc(name)}">👁 Preview course: scorecard & hole maps</button>
   <div class="card scroll-x"><h2>Hole by hole</h2>
     <table class="tbl"><thead><tr><th>Hole</th><th>Par</th><th>Avg</th><th>+/-</th><th>Best</th><th>Played</th></tr></thead><tbody>
     ${rows.map(r => r.none ? `<tr><td>${r.n}</td><td colspan="5" class="muted">—</td></tr>` :

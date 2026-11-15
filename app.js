@@ -179,9 +179,10 @@ function aggregate(rounds) {
 function setTitle(t, right = '') { $('#title').textContent = t; $('#topRight').innerHTML = right; }
 function render() {
   if (S.pendingReload && S.view !== 'map') { S.pendingReload = false; persist(); location.reload(); return; }
-  document.querySelectorAll('.tab').forEach(b => b.classList.toggle('on', b.dataset.view === (S.view === 'map' ? 'play' : S.view === 'bag' ? 'home' : S.view)));
+  document.querySelectorAll('.tab').forEach(b => b.classList.toggle('on', b.dataset.view === (S.view === 'map' ? 'play' : S.view === 'bag' || S.view === 'preview' ? 'home' : S.view)));
   document.body.classList.toggle('mapmode', S.view === 'map');
   if (S.view !== 'map' && typeof stopMap === 'function') stopMap();
+  if (S.view !== 'preview' && typeof stopPreview === 'function') stopPreview();
   if (S.view === 'map') { applyTheme(); return renderMap(); }
   applyTheme();
   const m = $('#main');
@@ -190,6 +191,7 @@ function render() {
   else if (S.view === 'rounds') m.innerHTML = S.courseView ? viewCourse() : S.detailId ? viewRoundDetail() : viewRounds();
   else if (S.view === 'stats') m.innerHTML = viewStats();
   else if (S.view === 'bag') m.innerHTML = viewBag();
+  else if (S.view === 'preview') { m.innerHTML = viewPreview(); pvDraw(); }
   else m.innerHTML = viewSettings();
   if ($('#nearby')) { paintNearby(); if (!CD.autoTried) { CD.autoTried = true; loadNearby(); } }
   if (S.view === 'play' && activeRound()) {
@@ -272,6 +274,7 @@ function viewNewRound() {
         `<button data-act="draftPar" data-v="${i}" class="p${p}"><small>${i + 1}</small><b>${p}</b>${d.si ? `<small>SI ${d.si[i]}</small>` : ''}${d.len && d.len[i] ? `<small>${fd(d.len[i])}</small>` : ''}${d.si && shotsGiven(d.hcp, d.si[i]) ? `<small class="dots">${'•'.repeat(shotsGiven(d.hcp, d.si[i]))}</small>` : ''}</button>`).join('')}</div>
       ${d.si ? `<div class="sub" style="margin-top:6px">SI = stroke index (1 = hardest).${d.hcp !== '' ? ' • = a shot you get on that hole.' : ''}</div>` : ''}
     </div>
+    ${d.course && (S.courses.some(c => sameCourse(c.name, d.course)) || BUILTIN_COURSES.some(c => sameCourse(c.name, d.course))) ? `<button class="btn block" data-act="pvOpen" data-v="${esc(d.course)}">👁 Preview course: scorecard & hole maps</button>` : ''}
     <button class="btn primary block" data-act="startRound">Tee off ⛳</button>
   </div>
   <div class="card">
