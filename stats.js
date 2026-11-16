@@ -56,7 +56,7 @@ function statOverview(A, rs) {
   const B = benchFor(S.settings.target), p1 = v => Math.round(v * 10) / 10;
   const putts18 = A.puttsN ? (A.putts / A.puttsN) * 18 : null, pen18 = A.per18(A.ob + A.water + A.pen);
   return handicapCard() + `<div class="card"><h2>Strengths & weaknesses</h2>
-    <div class="sub" style="margin-bottom:10px">Your stats against a ${S.settings.target}-handicap golfer (the mark in the middle). Right of the mark is better. Change the target under More.</div>
+    <div class="sub" style="margin-bottom:10px">Your stats against a ${S.settings.target}-handicap golfer (the mark in the middle). Right of the mark is better. Change the target in Settings.</div>
     ${swRow('Scoring avg.', A.holes ? p1(A.per18(A.strokes)) : null, p1(A.per18(A.par) + S.settings.target) || 72 + S.settings.target, false)}
     ${swRow('Fairway hits', pct(A.fir, A.firN), B.fir, true, v => v + '%')}
     ${swRow('Green hits', pct(A.gir, A.girN), B.gir, true, v => v + '%')}
@@ -130,7 +130,7 @@ function statPutting(A, X) {
   <div class="card"><h2>Putting distances</h2>${A.p1.some(b => b.n) ? `
     <div class="arcs">${A.p1.map((b, i) => `<div style="--i:${i}"><b>${b.n ? Math.round((b.one / b.n) * 100) + '%' : '–'}</b></div>`).join('')}</div>
     <table class="tbl" style="margin-top:10px"><thead><tr><th>First putt (m)</th><th>Holes</th><th>1-putt</th><th>3-putt</th></tr></thead><tbody>${A.p1.map((b, i) => `<tr><td>${PUTT_BUCKETS[i]}</td><td>${b.n}</td><td>${b.n ? fmtPct(b.one, b.n) : '–'}</td><td>${b.n ? fmtPct(b.three, b.n) : '–'}</td></tr>`).join('')}</tbody></table>
-    <div class="sub" style="margin-top:6px">The rings show your one-putt chance from each distance, closest in the middle.</div>` : '<div class="sub">Log your first-putt distance when you enter a score (under More stats) to see your make rate from each distance.</div>'}</div>`;
+    <div class="sub" style="margin-top:6px">The rings show your one-putt chance from each distance, closest in the middle.</div>` : '<div class="sub">Log your first-putt distance when you enter a score (in Settings stats) to see your make rate from each distance.</div>'}</div>`;
 }
 function clubShots(k) {
   const out = [];

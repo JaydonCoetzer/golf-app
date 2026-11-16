@@ -1,6 +1,6 @@
 'use strict';
 /* Golf Stats — on-course stat tracker built around the scoring zone.
-   All data lives in this browser's localStorage. Use More → Backup to export. */
+   All data lives in this browser's localStorage. Use Settings → Backup to export. */
 
 const KEYS = { rounds: 'gs.rounds', courses: 'gs.courses', settings: 'gs.settings', active: 'gs.active' };
 const DEFAULT_SETTINGS = { hcp: '', zone: 100, unit: 'm', target: 15, szGoal: 70, d3Goal: 70, theme: 'light' };
@@ -187,7 +187,7 @@ function setTitle(t, right = '') { $('#title').textContent = t; $('#topRight').i
 function render() {
   if (S.view === 'rounds' && !S.detailId && !S.courseView) { S.view = 'stats'; S.statTab = 'rounds'; }
   if (S.pendingReload && S.view !== 'map') { S.pendingReload = false; persist(); location.reload(); return; }
-  document.querySelectorAll('.tab').forEach(b => b.classList.toggle('on', b.dataset.view === (S.view === 'map' ? 'play' : S.view === 'bag' || S.view === 'preview' || S.view === 'profile' ? 'home' : S.view === 'rounds' ? 'stats' : S.view)));
+  document.querySelectorAll('.tab').forEach(b => b.classList.toggle('on', b.dataset.view === (S.view === 'map' ? 'play' : S.view === 'bag' || S.view === 'preview' || S.view === 'profile' || S.view === 'settings' ? 'home' : S.view === 'rounds' ? 'stats' : S.view)));
   document.body.classList.toggle('mapmode', S.view === 'map');
   if (S.view !== 'map' && typeof stopMap === 'function') stopMap();
   if (S.view !== 'preview' && typeof stopPreview === 'function') stopPreview();
@@ -199,6 +199,7 @@ function render() {
   else if (S.view === 'rounds') m.innerHTML = S.courseView ? viewCourse() : S.detailId ? viewRoundDetail() : viewRounds();
   else if (S.view === 'stats') m.innerHTML = viewStats();
   else if (S.view === 'bag') m.innerHTML = viewBag();
+  else if (S.view === 'practice') m.innerHTML = viewPractice();
   else if (S.view === 'profile') m.innerHTML = viewProfile();
   else if (S.view === 'preview') { m.innerHTML = viewPreview(); pvDraw(); }
   else m.innerHTML = viewSettings();
@@ -603,7 +604,7 @@ function focusCard(A) {
   add('Scoring zone in regulation', sz, S.settings.szGoal, true, A.szN >= 9, `Plan backwards from the zone. Pick tee and lay-up clubs that leave you inside ${zoneLabel()} in regulation, not the longest club you own.`, '%');
   add('Down in 3', d3, S.settings.d3Goal, true, A.d3N >= 9, `Inside ${zoneLabel()}, aim for the fat part of the green and make an easy two-putt. Don't chase pins.`, '%');
 
-  if (!items.length) return `<div class="card"><h2>Focus areas</h2><div class="sub">Log a few more holes and your biggest leaks will show up here. Comparing against a ${S.settings.target} handicap (change this under More).</div></div>`;
+  if (!items.length) return `<div class="card"><h2>Focus areas</h2><div class="sub">Log a few more holes and your biggest leaks will show up here. Comparing against a ${S.settings.target} handicap (change this in Settings).</div></div>`;
   const worst = items.filter(i => i.gap > 0.05).sort((a, b) => b.gap - a.gap).slice(0, 3);
   const best = items.filter(i => i.gap < -0.1).sort((a, b) => a.gap - b.gap).slice(0, 2);
   return `<div class="card"><h2>Focus areas <span class="sub">vs ${S.settings.target} hcp / your goals</span></h2>
@@ -658,7 +659,7 @@ function trendCard(rs) {
 
 /* ----- settings ----- */
 function viewSettings() {
-  setTitle('More');
+  setTitle('Settings', `<button class="tbtn" data-act="goHome">Done</button>`);
   const s = S.settings;
   return `
   <div class="card stack">

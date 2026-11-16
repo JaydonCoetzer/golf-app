@@ -16,3 +16,4 @@ Small improvements made by the improvement loop, newest first.
 - End round / Delete round: in the round menu (☰) and under the in-progress card on Home.
 - Devonvale Golf & Wine Estate added with its scorecard; course database builder now also picks up courses mapped as a single point.
 - Home order: profile, handicap, courses near me (search bar plus the 2 closest courses), then rounds.
+- Settings moved to a gear button on Home (top right); the fourth tab is now Practice (placeholder showing your current focus areas).

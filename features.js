@@ -148,7 +148,7 @@ function viewHome() {
   const A = aggregate(full.slice(0, 10));
 
   return `<div class="home">
-    ${homeProfileCard()}
+    <div class="h-toprow">${homeProfileCard()}<button class="h-gear" data-act="goSettings" aria-label="Settings"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button></div>
 
     <div class="h-title">Handicap</div>
     <div class="h-hcp" data-act="goStats"><svg class="h-golfer" viewBox="0 0 40 60" aria-hidden="true"><circle cx="24" cy="8" r="5"/><path d="M22 15l-6 14 4 2-3 26h5l4-20 5 20h5l-7-30 1-10 9-12-3-2-9 11z"/></svg>
@@ -250,3 +250,13 @@ Object.assign(ACTIONS, {
   goBag() { S.view = 'bag'; window.scrollTo(0, 0); },
   insTab(v) { M.insTab = v; },
 });
+
+/* ---------- practice (placeholder until the practice feature is built) ---------- */
+function viewPractice() {
+  setTitle('Practice');
+  const rs = rangeRounds(), A = rs.length ? aggregate(rs) : null;
+  return `<div class="card empty"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="5" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="1.3" fill="currentColor"/></svg>
+    <p><b>Practice is coming soon.</b><br>Drills and practice tracking will live here.</p></div>
+  ${A ? `<div class="h-title" style="margin:4px 2px 10px">What to work on now</div>` + focusCard(A) : ''}`;
+}
+Object.assign(ACTIONS, { goSettings() { S.view = 'settings'; window.scrollTo(0, 0); } });
