@@ -181,7 +181,7 @@ function aggregate(rounds) {
 function setTitle(t, right = '') { $('#title').textContent = t; $('#topRight').innerHTML = right; }
 function render() {
   if (S.pendingReload && S.view !== 'map') { S.pendingReload = false; persist(); location.reload(); return; }
-  document.querySelectorAll('.tab').forEach(b => b.classList.toggle('on', b.dataset.view === (S.view === 'map' ? 'play' : S.view === 'bag' || S.view === 'preview' ? 'home' : S.view)));
+  document.querySelectorAll('.tab').forEach(b => b.classList.toggle('on', b.dataset.view === (S.view === 'map' ? 'play' : S.view === 'bag' || S.view === 'preview' || S.view === 'profile' ? 'home' : S.view)));
   document.body.classList.toggle('mapmode', S.view === 'map');
   if (S.view !== 'map' && typeof stopMap === 'function') stopMap();
   if (S.view !== 'preview' && typeof stopPreview === 'function') stopPreview();
@@ -193,6 +193,7 @@ function render() {
   else if (S.view === 'rounds') m.innerHTML = S.courseView ? viewCourse() : S.detailId ? viewRoundDetail() : viewRounds();
   else if (S.view === 'stats') m.innerHTML = viewStats();
   else if (S.view === 'bag') m.innerHTML = viewBag();
+  else if (S.view === 'profile') m.innerHTML = viewProfile();
   else if (S.view === 'preview') { m.innerHTML = viewPreview(); pvDraw(); }
   else m.innerHTML = viewSettings();
   if ($('#nearby')) { paintNearby(); if (!CD.autoTried) { CD.autoTried = true; loadNearby(); } }
@@ -683,6 +684,7 @@ function viewSettings() {
     ${seg('theme', [['auto', 'Auto'], ['light', 'Light'], ['dark', 'Dark']], s.theme)}
   </div>
   ${gcaCard()}
+  <button class="btn block" style="margin-bottom:12px" data-act="goProfile">👤 Player profile & headshot ›</button>
   <button class="btn block" style="margin-bottom:12px" data-act="goBag">🏌️ Golf bag: club distances ›</button>
   <div class="card">
     <h2>Saved courses</h2>
