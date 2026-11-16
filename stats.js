@@ -2,7 +2,7 @@
 /* Stats hub: one category at a time, picked from a scrolling selector (Overview, Rounds, Scoring, Driving,
    Approach, Short game, Putting, Clubs). Replaces the single long stats page. */
 
-const STAT_TABS = [['overview', 'Overview'], ['rounds', 'Rounds'], ['scoring', 'Scoring'], ['driving', 'Driving'], ['approach', 'Approach'], ['short', 'Short game'], ['putting', 'Putting'], ['clubs', 'Clubs']];
+const STAT_TABS = [['overview', 'Overview'], ['rounds', 'Rounds'], ['scoring', 'Scoring'], ['driving', 'Driving'], ['approach', 'Approach'], ['short', 'Short game'], ['putting', 'Putting'], ['sg', 'Strokes gained'], ['clubs', 'Clubs']];
 
 function statSelector() {
   const t = S.statTab || 'overview';
@@ -167,7 +167,7 @@ function viewStats() {
   const rs = rangeRounds();
   if (!rs.length) return statSelector() + `<div class="card empty"><p>Play a round and your stats will show up here.</p></div>`;
   const A = aggregate(rs), X = extraStats(rs);
-  const body = t === 'scoring' ? statScoring(A, X) : t === 'driving' ? statDriving(A, X, rs) : t === 'approach' ? statApproach(A, X) : t === 'short' ? statShort(A, X) : t === 'putting' ? statPutting(A, X) : statOverview(A, rs);
+  const body = t === 'scoring' ? statScoring(A, X) : t === 'driving' ? statDriving(A, X, rs) : t === 'approach' ? statApproach(A, X) : t === 'short' ? statShort(A, X) : t === 'putting' ? statPutting(A, X) : t === 'sg' ? statSG(rs) : statOverview(A, rs);
   return statSelector() + rangeChips() + body;
 }
 Object.assign(ACTIONS, {

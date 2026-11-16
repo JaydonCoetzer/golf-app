@@ -281,6 +281,7 @@ function viewNewRound() {
       ${d.si ? `<div class="sub" style="margin-top:6px">SI = stroke index (1 = hardest).${d.hcp !== '' ? ' • = a shot you get on that hole.' : ''}</div>` : ''}
     </div>
     ${d.course && (S.courses.some(c => sameCourse(c.name, d.course)) || BUILTIN_COURSES.some(c => sameCourse(c.name, d.course))) ? `<button class="btn block" data-act="pvOpen" data-v="${esc(d.course)}">👁 Preview course: scorecard & hole maps</button>` : ''}
+    ${playersSetup()}
     <button class="btn primary block" data-act="startRound">Tee off ⛳</button>
   </div>
   <div class="card">
@@ -753,6 +754,7 @@ const ACTIONS = {
     const r = { id: uid(), created: Date.now(), date: d.date || localDate(), course: d.course.trim(), tees: d.tees.trim(), notes: '', completed: false,
       holes: d.pars.slice(0, d.count).map((p, i) => newHole(i + 1, p, d.si && d.si[i], d.len && d.len[i])), hcp: d.hcp === '' ? null : Number(d.hcp), cr: Number(d.cr) || null, slope: Number(d.slope) || null };
     S.settings.hcp = d.hcp;
+    { const su = setup(), fr = S.settings.friends || []; r.players = su.players.map(id => fr.find(f => f.id === id)).filter(Boolean).map(f => ({ id: f.id, name: f.name, hcp: f.hcp === '' ? null : f.hcp })); r.format = su.format || 'stroke'; }
     S.rounds.push(r); S.activeId = r.id; S.hole = 0; S.draft = null; S.view = 'map'; window.scrollTo(0, 0);
     saveRoundCourse(r);
     toast('Round started. Good luck!');

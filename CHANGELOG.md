@@ -10,3 +10,6 @@ Small improvements made by the improvement loop, newest first.
 - Tap-to-measure on the map shows large distance labels on the line.
 - Stats is now a hub with a selector: Overview (strengths & weaknesses vs target handicap), Rounds, Scoring, Driving, Approach, Short game, Putting and Clubs (per-club shot history with outliers left out).
 - Rounds moved out of the bottom bar into Stats and the Home screen ("All rounds").
+- Other players: add up to 5 players (saved on this phone) when starting a round, enter their score and putts on the score sheet, and see them on the Recap scorecard.
+- Game formats: stroke play, Stableford, match play and skins, all using net scores from handicap and stroke index.
+- Strokes gained (Stats → Strokes gained): driving, approach, short game and putting per 18 against a tour-level baseline, with a practice priority. Counts only fully tracked holes.

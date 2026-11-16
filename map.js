@@ -436,7 +436,19 @@ function sheetHtml() {
     if (pv.score > scores[5]) scores[5] = pv.score;
     const putts = [0, 1, 2, 3, 4]; if ((pv.putts ?? 0) > 4) putts[4] = pv.putts;
     const lastHole = S.hole >= r.holes.length - 1;
-    return head(`Hole ${h.n}`) + `
+    const others = r.players || [], who = others.find(pl => pl.id === M.who);
+    const whoChips = others.length ? `<div class="chips" style="margin-bottom:10px"><button data-act="who" data-v="" class="${who ? '' : 'on'}">${esc(myName())}${h.done && h.score != null ? ' · ' + h.score : ''}</button>${others.map(pl => `<button data-act="who" data-v="${pl.id}" class="${who === pl ? 'on' : ''}">${esc(pl.name)}${pScore(h, pl.id) != null ? ' · ' + pScore(h, pl.id) : ''}</button>`).join('')}</div>` : '';
+    if (who) {
+      const o = (h.others || {})[who.id] || {}, given = shotsGiven(who.hcp, h.si);
+      const sc2 = scores.slice(); if (o.score > sc2[5]) sc2[5] = o.score;
+      return head(`Hole ${h.n}`) + whoChips + `
+        <div class="qs-tags"><span>Par ${h.par}</span>${h.si ? `<span>SI ${h.si}</span>` : ''}${given ? `<span>gets ${given} shot${given > 1 ? 's' : ''}</span>` : ''}${o.score != null ? `<span>${pPoints(h, who)} pts</span>` : ''}</div>
+        <div class="qs-row"><b>Score</b><div>${sc2.map(v => `<button data-act="oScore" data-v="${v}" class="qs-b ${scoreClass(v - h.par)} ${o.score === v ? 'on' : ''}">${v}</button>`).join('')}<button data-act="oScoreUp" class="qs-b">+</button></div></div>
+        <div class="qs-row"><b>Putts</b><div>${[0, 1, 2, 3, 4].map(v => `<button data-act="oPutts" data-v="${v}" class="qs-b ${o.putts === v ? 'on' : ''}">${v}</button>`).join('')}</div></div>
+        ${gameLine(r) ? `<div class="sub" style="margin-top:8px">${gameLine(r)}</div>` : ''}
+        <button class="btn primary block" style="margin-top:14px;font-size:18px" data-act="finishHoleMap">⚑ ${lastHole ? 'Finish round' : 'Finish hole'}</button>`;
+    }
+    return head(`Hole ${h.n}`) + whoChips + `
       <div class="qs-tags"><span>Par ${h.par}</span>${h.si ? `<span>SI ${h.si}</span>` : ''}${h.len ? `<span>${fd(h.len)} ${u}</span>` : ''}${hasHcp(r) ? `<span>${points(r, pv)} pts</span>` : ''}${shots.length ? `<span>${shots.length} shots tracked</span>` : ''}</div>
       <div class="qs-row"><b>Score</b><div>${scores.map(v => `<button data-act="setScore" data-v="${v}" class="qs-b ${scoreClass(v - h.par)} ${pv.score === v ? 'on' : ''}">${v}</button>`).join('')}<button data-act="score" data-v="1" class="qs-b">+</button></div></div>
       <div class="qs-row"><b>Putts</b><div>${putts.map(v => `<button data-act="setPutts" data-v="${v}" class="qs-b ${pv.putts === v ? 'on' : ''}">${v}</button>`).join('')}</div></div>
@@ -524,6 +536,7 @@ Object.assign(ACTIONS, {
   setScore(v) { const h = curHole(); clampHole(h); h.score = Number(v); clampHole(h); touch(h); },
   setPutts(v) { const h = curHole(); clampHole(h); h.putts = Number(v); clampHole(h); touch(h); },
   finishHoleMap() {
+    M.who = null;
     const r = activeRound(), h = curHole(); clampHole(h); touch(h); M.sheet = null; M.target = null;
     if (S.hole >= r.holes.length - 1) { if (confirm('Finish the round?')) ACTIONS.finishRound(); return; }
     S.hole++; M.club = 'Dr'; setTimeout(fitHole, 0);

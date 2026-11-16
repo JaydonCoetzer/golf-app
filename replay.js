@@ -26,7 +26,8 @@ function recapHtml(r) {
       ${hc ? `<tr><td>Net</td>${parts.map(p => `<td>${tot(p[1], h => h.score - shotsGiven(r.hcp, h.si)) || '–'}</td>`).join('')}</tr>
       <tr><td>Points</td>${parts.map(p => `<td>${tot(p[1], h => points(r, h))}</td>`).join('')}</tr>` : ''}
       <tr><td>Putts</td>${parts.map(p => `<td>${tot(p[1], h => h.putts || 0)}</td>`).join('')}</tr>
-      <tr><td>Penalties</td>${parts.map(p => `<td>${tot(p[1], h => (h.ob || 0) + (h.water || 0) + (h.pen || 0))}</td>`).join('')}</tr>`;
+      <tr><td>Penalties</td>${parts.map(p => `<td>${tot(p[1], h => (h.ob || 0) + (h.water || 0) + (h.pen || 0))}</td>`).join('')}</tr>
+      ${(r.players || []).map(pl => `<tr><td>${esc(pl.name)}</td>${parts.map(p => `<td>${sum(p[1].map(h => pScore(h, pl.id) || 0)) || '–'}</td>`).join('')}</tr>`).join('')}`;
   } else {
     const hs = half === 'back' ? r.holes.slice(9) : r.holes.slice(0, 9);
     const row = (label, f, total) => `<tr><td>${label}</td>${hs.map(h => `<td>${f(h)}</td>`).join('')}<td><b>${total ?? ''}</b></td></tr>`;
@@ -36,7 +37,8 @@ function recapHtml(r) {
       ${row('Score', cell, tot(hs, h => h.score) || '–')}
       ${hc ? row('Net', h => played(h) ? h.score - shotsGiven(r.hcp, h.si) : '–', tot(hs, h => h.score - shotsGiven(r.hcp, h.si)) || '–') : ''}
       ${hc ? row('Pts', h => played(h) ? points(r, h) : '–', tot(hs, h => points(r, h))) : ''}
-      ${row('Putts', h => played(h) ? h.putts ?? '–' : '–', tot(hs, h => h.putts || 0))}`;
+      ${row('Putts', h => played(h) ? h.putts ?? '–' : '–', tot(hs, h => h.putts || 0))}
+      ${(r.players || []).map(pl => row(esc(pl.name), h => { const v = pScore(h, pl.id); return v == null ? '–' : `<span class="sc ${scoreClass(v - h.par)}">${v}</span>`; }, sum(hs.map(h => pScore(h, pl.id) || 0)) || '–')).join('')}`;
   }
   return `
   <div class="rc-hero">
@@ -49,6 +51,7 @@ function recapHtml(r) {
     <div class="scroll-x"><table class="tbl rc-card">${table}</table></div>
     ${!r.cr || !r.slope ? '<div class="sub" style="margin-top:8px">Add the course rating and slope when you start a round to get a differential.</div>' : ''}
   </div>
+  ${gameCard(r)}
   <button class="btn primary block" style="margin-bottom:10px" data-act="shareRound" data-v="${r.id}">📤 Share scorecard</button>
   <div class="card">
     <label class="f" for="rNotes">Notes</label>

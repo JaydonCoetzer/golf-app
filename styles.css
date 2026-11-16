@@ -638,3 +638,21 @@ input[type=text], input[type=date], input[type=number], select, textarea { borde
 .clubtags span { padding: 6px 12px; border-radius: 8px; font-size: 14px; font-weight: 650; }
 .clubtags .avg { background: #f6b93b; color: #2a1d00; } .clubtags .long { background: #3d55e8; color: #fff; }
 .clubtags b { font-size: 18px; }
+
+/* players + strokes gained */
+.np-row { display: grid; grid-template-columns: 1fr 76px auto; gap: 6px; margin-top: 8px; }
+.np-row input { padding: 9px 10px; border-radius: 10px; border: 0; background: var(--surface-2); font-size: 15px; min-width: 0; }
+.sgbars > div { display: grid; grid-template-columns: 118px 1fr 46px; align-items: center; gap: 8px; padding: 8px 0; border-bottom: 1px solid var(--line); }
+.sgbars > div:last-child { border-bottom: 0; }
+.sgbars b { display: block; font-size: 15px; }
+.sgbars small { color: var(--muted); font-size: 11.5px; }
+.sg-track { position: relative; height: 14px; background: var(--surface-2); border-radius: 7px; }
+.sg-track::after { content: ''; position: absolute; left: 50%; top: -3px; bottom: -3px; width: 2px; background: var(--text); opacity: .5; }
+.sg-track i { position: absolute; top: 0; bottom: 0; }
+.sg-track i.neg { right: 50%; background: var(--bad); border-radius: 7px 0 0 7px; }
+.sg-track i.pos { left: 50%; background: var(--good); border-radius: 0 7px 7px 0; }
+.sgbars em { font-style: normal; font-weight: 800; text-align: right; }
+.sgbars em.neg { color: var(--bad); } .sgbars em.pos { color: var(--good); }
+.tile.hero .k { color: rgba(255,255,255,.82); }
+.tile.hero .v small { color: rgba(255,255,255,.7) !important; }
+.sgbars > div { grid-template-columns: 104px 1fr 46px; }
