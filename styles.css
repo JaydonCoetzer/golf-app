@@ -521,3 +521,48 @@ input[type=text], input[type=date], input[type=number], select, textarea { borde
 .hp-t b { font-size: 17px; }
 .hp-t small { color: var(--muted); font-size: 13px; }
 .hp-chev { color: #b9bcc6; font-size: 24px; }
+
+/* quick score sheet */
+.qs-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+.qs-tags span { border: 1px solid var(--line); border-radius: 8px; padding: 4px 10px; font-size: 13.5px; font-weight: 650; background: var(--surface); }
+.qs-row { display: flex; align-items: center; gap: 10px; padding: 6px 0; }
+.qs-row > b { width: 52px; font-size: 15px; }
+.qs-row > div { display: flex; gap: 6px; flex: 1; }
+.qs-b { flex: 1; height: 50px; border: 0; border-radius: 10px; background: var(--surface-2); font-size: 19px; font-weight: 700; color: var(--text); position: relative; }
+.qs-b.on { background: var(--brand-2); color: #fff; }
+.qs-b.birdie:not(.on), .qs-b.eagle:not(.on) { box-shadow: inset 0 0 0 2px var(--birdie); border-radius: 50%; }
+.qs-b.bogey:not(.on), .qs-b.double:not(.on), .qs-b.triple:not(.on) { box-shadow: inset 0 0 0 2px var(--bogey); }
+.leaflet-tooltip.biglbl { background: none; border: 0; box-shadow: none; color: #fff; font-weight: 800; font-size: 30px; text-shadow: 0 1px 6px rgba(0,0,0,.8), 0 0 2px #000; padding: 0; }
+.leaflet-tooltip.biglbl::before { display: none; }
+
+/* round detail: tabs, recap, replay */
+.dtabs { margin-bottom: 12px; }
+.dtabs button { padding: 9px 18px; font-size: 15px; border: 0; background: var(--surface); box-shadow: var(--shadow); }
+.dtabs button.on { background: #3d4a5c; color: #fff; }
+.rc-hero { background: linear-gradient(160deg, #2a323d, #171c23); color: #fff; border-radius: 18px; padding: 18px; margin-bottom: 12px; box-shadow: var(--shadow); }
+.rc-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+.rc-score { font-size: 60px; font-weight: 850; line-height: 1; letter-spacing: -2px; }
+.rc-top sup { font-size: 24px; font-weight: 700; color: #aab3c0; margin-left: 4px; vertical-align: top; }
+.rc-tees { font-size: 19px; font-weight: 750; text-align: right; }
+.rc-tees small { display: block; font-size: 13px; font-weight: 600; color: #aab3c0; }
+.rc-trio { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.rc-trio div { background: rgba(255,255,255,.08); border-radius: 10px; padding: 9px 12px; }
+.rc-trio b { display: block; font-size: 18px; }
+.rc-trio span { font-size: 13px; color: #aab3c0; }
+.rc-card td, .rc-card th { padding: 9px 2px; font-size: 14px; border-bottom: 0; }
+.rc-card td:first-child { font-weight: 700; }
+#rpWrap { position: relative; height: 58dvh; margin: 0 0 12px; border-radius: 18px; overflow: hidden; background: #1b2a22; isolation: isolate; z-index: 0; }
+#rpMap { position: absolute; inset: 0; }
+.rp-hole { position: absolute; z-index: 600; top: 12px; left: 50%; transform: translateX(-50%); background: rgba(20,24,28,.85); color: #fff; font-weight: 750; font-size: 17px; padding: 7px 16px; border-radius: 999px; }
+.rp-foot { position: absolute; z-index: 600; bottom: 22px; left: 50%; transform: translateX(-50%); background: rgba(20,24,28,.85); color: #fff; font-size: 14.5px; padding: 7px 14px; border-radius: 999px; white-space: nowrap; }
+#rpWrap .pv-nav { background: rgba(20,24,28,.85); color: #fff; }
+#rpWrap .leaflet-control-attribution { font-size: 8px; }
+.rp-club { display: flex; align-items: center; justify-content: center; width: 30px; height: 30px; border-radius: 50%; background: #14181c; color: #fff; border: 2.5px solid #fff; font-size: 11px; font-weight: 800; box-shadow: 0 2px 6px rgba(0,0,0,.5); }
+.rp-club.pen { border-color: #e5484d; }
+.rp-flag { font-size: 24px; filter: drop-shadow(0 1px 3px rgba(0,0,0,.7)); }
+.leaflet-tooltip.rp-dist { background: rgba(20,24,28,.9); color: #fff; border: 1px solid rgba(255,255,255,.25); border-radius: 8px; font-weight: 750; font-size: 12.5px; padding: 3px 8px; box-shadow: none; }
+.leaflet-tooltip.rp-dist.pen { background: #e5484d; border-color: #fff; }
+.leaflet-tooltip.rp-dist::before { display: none; }
+.rp-pen { background: #e5484d; color: #fff; font-size: 11.5px; font-weight: 800; border-radius: 6px; padding: 2px 7px; margin-left: auto; }
+.card h2 .btn.sm.primary { background: var(--brand-2); color: #fff; }
+.sheet.noanim { animation: none; }

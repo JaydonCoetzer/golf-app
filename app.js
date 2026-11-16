@@ -196,6 +196,7 @@ function render() {
   else if (S.view === 'profile') m.innerHTML = viewProfile();
   else if (S.view === 'preview') { m.innerHTML = viewPreview(); pvDraw(); }
   else m.innerHTML = viewSettings();
+  if ($('#rpMap')) rpDraw(); else if (typeof stopReplay === 'function') stopReplay();
   if ($('#nearby')) { paintNearby(); if (!CD.autoTried) { CD.autoTried = true; loadNearby(); } }
   if (S.view === 'play' && activeRound()) {
     const cur = $('.hchip.cur'); if (cur) cur.scrollIntoView({ block: 'nearest', inline: 'center' });
@@ -431,7 +432,11 @@ function viewRoundDetail() {
   const r = S.rounds.find(x => x.id === S.detailId);
   if (!r) { S.detailId = null; return viewRounds(); }
   setTitle(r.course || 'Round', `<button class="tbtn" data-act="closeDetail">‹ Rounds</button>`);
-  const { A, tp } = roundSummary(r);
+  const tab = S.detailTab || 'recap';
+  const head = `<div class="sub" style="margin:0 2px 8px">${fmtDate(r.date)}${r.completed ? '' : ' · in progress'}</div>${detailTabs()}`;
+  if (tab === 'replay') return head + replayHtml(r);
+  if (tab === 'recap') return head + recapHtml(r);
+  const { A } = roundSummary(r);
   const hc = hasHcp(r), NT = netTotals(r);
   const yes = v => (v == null ? '<span class="muted">–</span>' : v ? '✓' : '<span style="color:var(--bad)">✗</span>');
   const rows = r.holes.map(h => {
@@ -441,27 +446,14 @@ function viewRoundDetail() {
       <td>${h.par > 3 ? (h.fw === 'hit' ? '✓' : h.fw ? { left: '←', right: '→', short: '↓' }[h.fw] : '–') : ''}</td>
       <td>${yes(x.gir)}</td><td>${yes(h.szir)}</td><td>${yes(x.d3)}</td><td>${x.pens || ''}</td>${hc ? `<td>${points(r, h)}</td>` : ''}</tr>`;
   }).join('');
-  return `
-  <div class="card">
-    <div class="row between"><div><b>${fmtDate(r.date)}</b><div class="sub">${r.tees ? esc(r.tees) + ' tees · ' : ''}${A.holes}/${r.holes.length} holes${hc ? ` · hcp ${r.hcp}` : ''}</div>${hc && A.holes ? `<div style="margin-top:4px"><b>${NT.pts} points</b> · net ${NT.net}</div>` : ''}</div>
-    <div style="text-align:right"><div class="big" style="font-size:30px;font-weight:800">${A.strokes || '–'}</div><div class="sub">${A.holes ? toPar(tp) : ''}</div></div></div>
-  </div>
+  return head + `
   <div class="card scroll-x">
     <table class="tbl"><thead><tr><th>#</th><th>Par</th><th>Score</th><th>Putts</th><th>FW</th><th>GIR</th><th>SZ</th><th>D3</th><th>Pen</th>${hc ? '<th>Pts</th>' : ''}</tr></thead>
     <tbody>${rows}
     <tr class="tot"><td>Tot</td><td>${A.par}</td><td>${A.strokes}</td><td>${A.putts}</td><td>${A.fir}/${A.firN}</td><td>${A.gir}/${A.girN}</td><td>${A.sz}/${A.szN}</td><td>${A.d3}/${A.d3N}</td><td>${A.ob + A.water + A.pen || ''}</td>${hc ? `<td>${NT.pts}</td>` : ''}</tr>
     </tbody></table>
   </div>
-  ${statsBody(A, [r], true)}
-  <div class="card">
-    <label class="f" for="rNotes">Notes</label>
-    <textarea id="rNotes" data-bind="notes" data-v="${r.id}" placeholder="Wind, what worked, what to practise…">${esc(r.notes || '')}</textarea>
-  </div>
-  <button class="btn block" style="margin-bottom:10px" data-act="shareRound" data-v="${r.id}">📤 Share scorecard</button>
-  <div class="grid2" style="margin-bottom:12px">
-    <button class="btn" data-act="editRound" data-v="${r.id}">Edit holes</button>
-    <button class="btn danger" data-act="deleteRound" data-v="${r.id}">Delete</button>
-  </div>`;
+  ${statsBody(A, [r], true)}`;
 }
 
 /* ----- stats ----- */
@@ -773,7 +765,7 @@ const ACTIONS = {
   finishRound() {
     const r = activeRound(); const h = curHole(); clampHole(h); touch(h);
     r.completed = true; saveRoundCourse(r); S.activeId = null;
-    S.view = 'rounds'; S.detailId = r.id; toast('Round complete!'); window.scrollTo(0, 0);
+    S.view = 'rounds'; S.detailId = r.id; S.detailTab = 'recap'; toast('Round complete!'); window.scrollTo(0, 0);
   },
   par(v) { const h = curHole(); h.par = Number(v); if (!h.done) { h.score = null; h.putts = null; } if (h.par === 3) h.fw = null; },
   score(v) { const h = curHole(); clampHole(h); h.score += Number(v); clampHole(h); touch(h); },
@@ -792,7 +784,7 @@ const ACTIONS = {
   pen(v) { const h = curHole(); clampHole(h); h.pen = Math.max(0, (h.pen || 0) + Number(v)); touch(h); },
 
   /* rounds */
-  openRound(v) { S.view = 'rounds'; S.courseView = null; S.detailId = v; window.scrollTo(0, 0); },
+  openRound(v) { S.view = 'rounds'; S.courseView = null; S.detailId = v; S.detailTab = 'recap'; RP.i = 0; RP.edit = false; RP.fitted = false; window.scrollTo(0, 0); },
   closeDetail() { S.detailId = null; },
   async shareRound(v) {
     const r = S.rounds.find(x => x.id === v); if (!r) return;

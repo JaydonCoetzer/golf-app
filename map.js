@@ -10,6 +10,17 @@ const CLUBS = [
 ];
 const CLUB_NAME = Object.fromEntries(CLUBS);
 const MISHITS = [['good', 'Good'], ['topped', 'Topped'], ['fat', 'Fat'], ['thin', 'Thin'], ['shank', 'Shank'], ['slice', 'Slice / push'], ['hook', 'Hook / pull']];
+const LIES = [['tee', 'Tee'], ['fairway', 'Fairway'], ['rough', 'Rough'], ['sand', 'Bunker'], ['trouble', 'Trees / trouble'], ['green', 'Green']];
+const LIE_NAME = Object.fromEntries(LIES);
+const PENS = [['ob', 'Out of bounds'], ['water', 'Water'], ['drop', 'Lost / unplayable']];
+const PEN_NAME = { ob: 'OB', water: 'Water', drop: 'Drop' };
+/* Keep the hole's penalty counts in step with penalties tagged on tracked shots. */
+function syncPens(h, force) {
+  const s = h.shots || [];
+  if (!force && !h.penSync) return;
+  h.penSync = true;
+  h.ob = s.filter(x => x.pen === 'ob').length; h.water = s.filter(x => x.pen === 'water').length; h.pen = s.filter(x => x.pen === 'drop').length;
+}
 const ESRI = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
 
 S.geo = load('gs.geo', {});
@@ -57,7 +68,9 @@ function markShot() {
   const h = curHole();
   h.shots = h.shots || [];
   const pos = [M.me[0], M.me[1]];
-  h.shots.push({ lat: pos[0], lng: pos[1], club: M.club, acc: Math.round(M.acc || 0), bad: null });
+  const g0 = holeGeo(h.n);
+  const lie = !h.shots.length ? 'tee' : M.club === 'Pt' || (g0 && g0.poly && inPoly(pos, g0.poly)) ? 'green' : null;
+  h.shots.push({ lat: pos[0], lng: pos[1], club: M.club, acc: Math.round(M.acc || 0), bad: null, lie, pen: null });
   M.lastShot = h.shots.length - 1;
   // Scoring zone: the first time a marked ball is inside the zone, the shots taken so far = shots to reach the zone.
   const g = holeGeo(h.n);
@@ -272,6 +285,10 @@ function drawMap() {
     const line = [M.me, M.target, g && g.c].filter(Boolean);
     L.polyline(line, { color: '#fff', weight: 2, dashArray: '6 6' }).addTo(M.layer);
     L.circleMarker(M.target, { radius: 10, color: '#fff', weight: 3, fill: false }).addTo(M.layer);
+    const lbl = (a, b) => L.circleMarker([(a[0] + b[0]) / 2, (a[1] + b[1]) / 2], { radius: 0, opacity: 0, interactive: false })
+      .bindTooltip(fd(dist(a, b)) + S.settings.unit, { permanent: true, direction: 'center', className: 'biglbl' }).addTo(M.layer);
+    if (M.me) lbl(M.me, M.target);
+    if (g) lbl(M.target, g.c);
   } else if (M.me && g) {
     L.polyline([M.me, g.c], { color: '#fff', weight: 1.5, dashArray: '4 6', opacity: 0.7 }).addTo(M.layer);
   }
@@ -339,13 +356,14 @@ function mapOverlays() {
   $('#mapBar').innerHTML = `
     <button class="mb-menu" data-act="sheet" data-v="menu" aria-label="Menu">☰</button>
     <button class="mb-arrow" data-act="mapPrev" ${S.hole === 0 ? 'disabled' : ''} aria-label="Previous hole">‹</button>
-    <button class="mb-score" data-act="enterScore"><span class="mb-tp">${hs.length ? toPar(tp) : 'E'}</span><span>${h.done && h.score != null ? `Hole ${h.n}: ${h.score}` : 'Enter score'}</span></button>
+    <button class="mb-score" data-act="sheet" data-v="score"><span class="mb-tp">${hs.length ? toPar(tp) : 'E'}</span><span>${h.done && h.score != null ? `Hole ${h.n}: ${h.score}` : 'Enter score'}</span></button>
     <button class="mb-arrow" data-act="mapNext" ${S.hole >= r.holes.length - 1 ? 'disabled' : ''} aria-label="Next hole">›</button>
     <button class="mb-menu" data-act="sheet" data-v="shots" aria-label="Shots">⛳</button>`;
 
   // sheet
   $('#mapSheet').className = M.sheet ? 'open' : '';
-  $('#mapSheet').innerHTML = M.sheet ? `<div class="sheet-bg" data-act="sheet" data-v=""></div><div class="sheet">${sheetHtml()}</div>` : '';
+  $('#mapSheet').innerHTML = M.sheet ? `<div class="sheet-bg" data-act="sheet" data-v=""></div><div class="sheet ${M.sheetShown === M.sheet ? 'noanim' : ''}">${sheetHtml()}</div>` : '';
+  M.sheetShown = M.sheet;
 }
 function onMapClick(e) {
   const p = [e.latlng.lat, e.latlng.lng];
@@ -412,6 +430,22 @@ async function autoFind(force) {
 function sheetHtml() {
   const r = activeRound(), h = curHole(), shots = h.shots || [], u = S.settings.unit;
   const head = t => `<div class="sheet-h"><b>${t}</b><button class="mt-x dark" data-act="sheet" data-v="">✕</button></div>`;
+  if (M.sheet === 'score') {
+    const pv = h.score == null ? { ...h, score: h.par, putts: 2 } : h;
+    const lo = Math.max(1, h.par - 2), scores = Array.from({ length: 6 }, (_, i) => lo + i);
+    if (pv.score > scores[5]) scores[5] = pv.score;
+    const putts = [0, 1, 2, 3, 4]; if ((pv.putts ?? 0) > 4) putts[4] = pv.putts;
+    const lastHole = S.hole >= r.holes.length - 1;
+    return head(`Hole ${h.n}`) + `
+      <div class="qs-tags"><span>Par ${h.par}</span>${h.si ? `<span>SI ${h.si}</span>` : ''}${h.len ? `<span>${fd(h.len)} ${u}</span>` : ''}${hasHcp(r) ? `<span>${points(r, pv)} pts</span>` : ''}${shots.length ? `<span>${shots.length} shots tracked</span>` : ''}</div>
+      <div class="qs-row"><b>Score</b><div>${scores.map(v => `<button data-act="setScore" data-v="${v}" class="qs-b ${scoreClass(v - h.par)} ${pv.score === v ? 'on' : ''}">${v}</button>`).join('')}<button data-act="score" data-v="1" class="qs-b">+</button></div></div>
+      <div class="qs-row"><b>Putts</b><div>${putts.map(v => `<button data-act="setPutts" data-v="${v}" class="qs-b ${pv.putts === v ? 'on' : ''}">${v}</button>`).join('')}</div></div>
+      ${h.par > 3 ? `<div class="field-title" style="margin-top:10px"><span>Tee shot</span></div>${seg('fw', [['left', '← Left', 'warn'], ['hit', 'Fairway ✓'], ['right', 'Right →', 'warn'], ['short', 'Short', 'warn']], h.fw)}` : ''}
+      <div class="field-title" style="margin-top:10px"><span>In scoring zone (${esc(zoneLabel())}) in ${h.par - 2} shot${h.par === 3 ? '' : 's'}?</span></div>
+      ${seg('szir', [['true', 'Yes ✓'], ['false', 'No', 'bad']], h.szir)}
+      <button class="btn primary block" style="margin-top:14px;font-size:18px" data-act="finishHoleMap">⚑ ${lastHole ? 'Finish round' : 'Finish hole'}</button>
+      <button class="btn block sm" style="margin-top:8px" data-act="enterScore">More stats: up & down, bunker, penalties ›</button>`;
+  }
   if (M.sheet === 'hazards') {
     const hz = hazardsAhead();
     return head(`Hole ${h.n} hazards`) + (hz.length ? hz.map(z => `<div class="shot"><span class="n">${z.t === 'water' ? '💧' : '⛱'}</span><b>${z.t === 'water' ? 'Water' : 'Bunker'} ${z.side}</b><span class="sub" style="margin-left:auto">${fd(z.near)} reach · <b>${fd(z.far)}</b> carry</span></div>`).join('')
@@ -434,10 +468,14 @@ function sheetHtml() {
     <button class="btn primary block" style="margin-top:10px" data-act="markShot" ${M.me ? '' : 'disabled'}>📍 Mark ball here · ${esc(CLUB_NAME[M.club])}</button>
     <div class="sub" style="margin-top:6px">Stand at your ball and tap before each shot. On the green, mark with Putter so your approach is measured.</div>
     ${last != null ? `<div class="field-title" style="margin-top:12px"><span>How was shot ${last + 1}?</span></div>
-      <div class="chips">${MISHITS.map(([k, l]) => `<button data-act="badShot" data-v="${k}" class="${shots[last].bad === k ? 'on' : ''}">${l}</button>`).join('')}</div>` : ''}
+      <div class="chips">${MISHITS.map(([k, l]) => `<button data-act="badShot" data-v="${k}" class="${shots[last].bad === k ? 'on' : ''}">${l}</button>`).join('')}</div>
+      <div class="field-title" style="margin-top:10px"><span>Hit from</span></div>
+      <div class="chips">${LIES.map(([k, l]) => `<button data-act="shotLie" data-v="${k}" class="${shots[last].lie === k ? 'on' : ''}">${l}</button>`).join('')}</div>
+      <div class="field-title" style="margin-top:10px"><span>Penalty on this shot?</span></div>
+      <div class="chips">${PENS.map(([k, l]) => `<button data-act="shotPen" data-v="${k}" class="${shots[last].pen === k ? 'on' : ''}">${l}</button>`).join('')}</div>` : ''}
     ${shots.map((s, i) => { const d = shotDist(h, i);
       return `<div class="shot"><span class="n">${i + 1}</span><b>${esc(CLUB_NAME[s.club] || s.club)}</b>
-        <span class="sub">${d != null ? fd(d) + ' ' + u : i === last ? 'mark next ball to measure' : ''}${s.bad && s.bad !== 'good' ? ' · ' + s.bad : ''}</span>
+        <span class="sub">${d != null ? fd(d) + ' ' + u : i === last ? 'mark next ball to measure' : ''}${s.bad && s.bad !== 'good' ? ' · ' + s.bad : ''}${s.pen ? ' · ' + PEN_NAME[s.pen] : ''}</span>
         <button class="x" data-act="delShot" data-v="${i}" aria-label="Delete shot">✕</button></div>`; }).join('')}`;
 }
 
@@ -483,8 +521,17 @@ Object.assign(ACTIONS, {
   goHome() { S.view = 'home'; },
   pickClub(v) { M.club = v; },
   markShot() { markShot(); if (!M.sheet) toast(`Shot ${curHole().shots.length} marked · ${CLUB_NAME[curHole().shots[curHole().shots.length - 1].club]}`); },
+  setScore(v) { const h = curHole(); clampHole(h); h.score = Number(v); clampHole(h); touch(h); },
+  setPutts(v) { const h = curHole(); clampHole(h); h.putts = Number(v); clampHole(h); touch(h); },
+  finishHoleMap() {
+    const r = activeRound(), h = curHole(); clampHole(h); touch(h); M.sheet = null; M.target = null;
+    if (S.hole >= r.holes.length - 1) { if (confirm('Finish the round?')) ACTIONS.finishRound(); return; }
+    S.hole++; M.club = 'Dr'; setTimeout(fitHole, 0);
+  },
+  shotLie(v) { const s = curHole().shots; if (s && s.length) { const x = s[s.length - 1]; x.lie = x.lie === v ? null : v; } },
+  shotPen(v) { const h = curHole(), s = h.shots; if (s && s.length) { const x = s[s.length - 1]; x.pen = x.pen === v ? null : v; syncPens(h, true); } },
   badShot(v) { const s = curHole().shots; if (s && s.length) { const x = s[s.length - 1]; x.bad = x.bad === v ? null : v; } },
-  delShot(v) { if (confirm('Delete this shot?')) curHole().shots.splice(Number(v), 1); },
+  delShot(v) { if (confirm('Delete this shot?')) { curHole().shots.splice(Number(v), 1); syncPens(curHole()); } },
   toggleFlag() { M.setFlag = !M.setFlag; M.target = null; M.sheet = null; },
   clearTarget() { M.target = null; },
   recenter() { fitHole(); },
