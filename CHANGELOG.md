@@ -15,3 +15,4 @@ Small improvements made by the improvement loop, newest first.
 - Strokes gained (Stats → Strokes gained): driving, approach, short game and putting per 18 against a tour-level baseline, with a practice priority. Counts only fully tracked holes.
 - End round / Delete round: in the round menu (☰) and under the in-progress card on Home.
 - Devonvale Golf & Wine Estate added with its scorecard; course database builder now also picks up courses mapped as a single point.
+- Home order: profile, handicap, courses near me (search bar plus the 2 closest courses), then rounds.

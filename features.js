@@ -149,10 +149,6 @@ function viewHome() {
 
   return `<div class="home">
     ${homeProfileCard()}
-    <label class="h-search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" stroke-width="2"/><path d="M20 20l-4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-      <input type="search" data-bind="homeSearch" placeholder="Find any course in South Africa" autocomplete="off"></label>
-    <div id="homeResults"></div>
-    <div id="nearby"></div>
 
     <div class="h-title">Handicap</div>
     <div class="h-hcp" data-act="goStats"><svg class="h-golfer" viewBox="0 0 40 60" aria-hidden="true"><circle cx="24" cy="8" r="5"/><path d="M22 15l-6 14 4 2-3 26h5l4-20 5 20h5l-7-30 1-10 9-12-3-2-9 11z"/></svg>
@@ -164,6 +160,11 @@ function viewHome() {
       <div><b>${scores.length ? Math.min(...scores) : '–'}</b><span>Best score</span></div>
     </div>
 
+    <div class="h-title">Courses near me</div>
+    <label class="h-search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" stroke-width="2"/><path d="M20 20l-4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      <input type="search" data-bind="homeSearch" placeholder="Find any course in South Africa" autocomplete="off"></label>
+    <div id="homeResults"></div>
+    <div id="nearby"></div>
     <div class="h-title">Rounds <button class="h-all" data-act="allRounds">All rounds ›</button></div>
     ${inprog ? (() => { const hs = playedHoles(inprog), RA = aggregate([inprog]);
       return `<button class="h-last live" data-act="resume" data-v="${inprog.id}"><div><small>In progress · thru ${hs.length}</small><b>${esc(inprog.course || 'Round')}</b></div><span class="h-score">${hs.length ? toPar(RA.strokes - RA.par) : '–'}</span></button>
