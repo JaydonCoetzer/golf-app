@@ -58,7 +58,7 @@ function coursesCard() {
 }
 function viewCourse() {
   const name = S.courseView;
-  setTitle(name, `<button class="tbtn" data-act="closeCourse">‹ Rounds</button>`);
+  setTitle(name, `<button class="tbtn" data-act="closeCourse">‹ Back</button>`);
   const rs = courseRounds(name);
   const maxHoles = Math.max(...rs.map(r => r.holes.length));
   const rows = [];
@@ -130,7 +130,7 @@ function bagCard() {
 
 Object.assign(ACTIONS, {
   openCourse(v) { S.courseView = v; S.detailId = null; window.scrollTo(0, 0); },
-  closeCourse() { S.courseView = null; },
+  closeCourse() { S.courseView = null; S.view = 'stats'; S.statTab = 'rounds'; },
   useCourseHcp(v) { S.draft.hcp = v; },
 });
 
@@ -164,7 +164,7 @@ function viewHome() {
       <div><b>${scores.length ? Math.min(...scores) : '–'}</b><span>Best score</span></div>
     </div>
 
-    <div class="h-title">Rounds</div>
+    <div class="h-title">Rounds <button class="h-all" data-act="allRounds">All rounds ›</button></div>
     ${inprog ? (() => { const hs = playedHoles(inprog), RA = aggregate([inprog]);
       return `<button class="h-last live" data-act="resume" data-v="${inprog.id}"><div><small>In progress · thru ${hs.length}</small><b>${esc(inprog.course || 'Round')}</b></div><span class="h-score">${hs.length ? toPar(RA.strokes - RA.par) : '–'}</span></button>`; })() : ''}
     ${last ? `<button class="h-last" data-act="openRound" data-v="${last.id}"><div><small>Last round: ${shortDate(last.date)}</small><b>${esc(last.course || 'Round')}</b></div><span class="h-score">${lastScore}</span></button>` : ''}

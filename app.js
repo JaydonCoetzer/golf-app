@@ -180,8 +180,9 @@ function aggregate(rounds) {
 /* ---------- rendering ---------- */
 function setTitle(t, right = '') { $('#title').textContent = t; $('#topRight').innerHTML = right; }
 function render() {
+  if (S.view === 'rounds' && !S.detailId && !S.courseView) { S.view = 'stats'; S.statTab = 'rounds'; }
   if (S.pendingReload && S.view !== 'map') { S.pendingReload = false; persist(); location.reload(); return; }
-  document.querySelectorAll('.tab').forEach(b => b.classList.toggle('on', b.dataset.view === (S.view === 'map' ? 'play' : S.view === 'bag' || S.view === 'preview' || S.view === 'profile' ? 'home' : S.view)));
+  document.querySelectorAll('.tab').forEach(b => b.classList.toggle('on', b.dataset.view === (S.view === 'map' ? 'play' : S.view === 'bag' || S.view === 'preview' || S.view === 'profile' ? 'home' : S.view === 'rounds' ? 'stats' : S.view)));
   document.body.classList.toggle('mapmode', S.view === 'map');
   if (S.view !== 'map' && typeof stopMap === 'function') stopMap();
   if (S.view !== 'preview' && typeof stopPreview === 'function') stopPreview();
@@ -196,6 +197,7 @@ function render() {
   else if (S.view === 'profile') m.innerHTML = viewProfile();
   else if (S.view === 'preview') { m.innerHTML = viewPreview(); pvDraw(); }
   else m.innerHTML = viewSettings();
+  { const st = $('.stabs .on'); if (st) st.scrollIntoView({ block: 'nearest', inline: 'center' }); }
   if ($('#rpMap')) rpDraw(); else if (typeof stopReplay === 'function') stopReplay();
   if ($('#nearby')) { paintNearby(); if (!CD.autoTried) { CD.autoTried = true; loadNearby(); } }
   if (S.view === 'play' && activeRound()) {
@@ -431,7 +433,7 @@ function viewRounds() {
 function viewRoundDetail() {
   const r = S.rounds.find(x => x.id === S.detailId);
   if (!r) { S.detailId = null; return viewRounds(); }
-  setTitle(r.course || 'Round', `<button class="tbtn" data-act="closeDetail">‹ Rounds</button>`);
+  setTitle(r.course || 'Round', `<button class="tbtn" data-act="closeDetail">‹ Back</button>`);
   const tab = S.detailTab || 'recap';
   const head = `<div class="sub" style="margin:0 2px 8px">${fmtDate(r.date)}${r.completed ? '' : ' · in progress'}</div>${detailTabs()}`;
   if (tab === 'replay') return head + replayHtml(r);
@@ -785,7 +787,7 @@ const ACTIONS = {
 
   /* rounds */
   openRound(v) { S.view = 'rounds'; S.courseView = null; S.detailId = v; S.detailTab = 'recap'; RP.i = 0; RP.edit = false; RP.fitted = false; window.scrollTo(0, 0); },
-  closeDetail() { S.detailId = null; },
+  closeDetail() { S.detailId = null; S.view = 'stats'; S.statTab = 'rounds'; },
   async shareRound(v) {
     const r = S.rounds.find(x => x.id === v); if (!r) return;
     const A = aggregate([r]), hs = playedHoles(r);

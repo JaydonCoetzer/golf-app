@@ -1,6 +1,6 @@
 // Offline cache for the app shell. Bump CACHE when files change so phones pick up the update.
-const CACHE = 'golf-stats-v21';
-const FILES = ['./', 'index.html', 'styles.css', 'app.js', 'map.js', 'features.js', 'courses.js', 'preview.js', 'profile.js', 'replay.js', 'vendor/leaflet/leaflet.js', 'vendor/leaflet/leaflet.css', 'manifest.webmanifest',
+const CACHE = 'golf-stats-v22';
+const FILES = ['./', 'index.html', 'styles.css', 'app.js', 'map.js', 'features.js', 'courses.js', 'preview.js', 'profile.js', 'replay.js', 'stats.js', 'vendor/leaflet/leaflet.js', 'vendor/leaflet/leaflet.css', 'manifest.webmanifest',
   'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png'];
 
 self.addEventListener('install', e => {

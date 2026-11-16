@@ -8,3 +8,5 @@ Small improvements made by the improvement loop, newest first.
 - Shot tracking: each shot records where it was hit from (tee, fairway, rough, bunker, trouble, green) and penalties (OB, water, lost/unplayable), which update the hole's penalty count.
 - Round detail now has Recap (score, slope, rating, differential, front/back/totals card), Replay (shots on the satellite map, hole by hole, with an Edit mode to place shots after the round) and Stats tabs.
 - Tap-to-measure on the map shows large distance labels on the line.
+- Stats is now a hub with a selector: Overview (strengths & weaknesses vs target handicap), Rounds, Scoring, Driving, Approach, Short game, Putting and Clubs (per-club shot history with outliers left out).
+- Rounds moved out of the bottom bar into Stats and the Home screen ("All rounds").
