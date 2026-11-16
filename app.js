@@ -456,6 +456,7 @@ function viewRoundDetail() {
     <label class="f" for="rNotes">Notes</label>
     <textarea id="rNotes" data-bind="notes" data-v="${r.id}" placeholder="Wind, what worked, what to practise…">${esc(r.notes || '')}</textarea>
   </div>
+  <button class="btn block" style="margin-bottom:10px" data-act="shareRound" data-v="${r.id}">📤 Share scorecard</button>
   <div class="grid2" style="margin-bottom:12px">
     <button class="btn" data-act="editRound" data-v="${r.id}">Edit holes</button>
     <button class="btn danger" data-act="deleteRound" data-v="${r.id}">Delete</button>
@@ -791,6 +792,16 @@ const ACTIONS = {
   /* rounds */
   openRound(v) { S.view = 'rounds'; S.courseView = null; S.detailId = v; window.scrollTo(0, 0); },
   closeDetail() { S.detailId = null; },
+  async shareRound(v) {
+    const r = S.rounds.find(x => x.id === v); if (!r) return;
+    const A = aggregate([r]), hs = playedHoles(r);
+    const lines = [`⛳ ${r.course || 'Round'} · ${fmtDate(r.date)}`, `Score ${A.strokes} (${toPar(A.strokes - A.par)})${hasHcp(r) ? ` · ${netTotals(r).pts} pts` : ''}`,
+      `Putts ${A.putts} · Fairways ${fmtPct(A.fir, A.firN)} · Greens ${fmtPct(A.gir, A.girN)}`, `Scoring zone ${fmtPct(A.sz, A.szN)} · Down in 3 ${fmtPct(A.d3, A.d3N)}`,
+      '', 'Hole: ' + hs.map(h => h.n).join(' '), 'Par:  ' + hs.map(h => h.par).join(' '), 'Score:' + hs.map(h => ' ' + h.score).join('')];
+    const text = lines.join('\n');
+    try { if (navigator.share) { await navigator.share({ text }); return; } } catch (e) { if (e && e.name === 'AbortError') return; }
+    try { await navigator.clipboard.writeText(text); toast('Scorecard copied, paste it anywhere'); } catch (e) { toast('Sharing not available on this phone'); }
+  },
   editRound(v) { S.activeId = v; const r = activeRound(); r.completed = false; S.hole = 0; S.view = 'play'; S.detailId = null; window.scrollTo(0, 0); },
   deleteRound(v) {
     if (!confirm('Delete this round? This cannot be undone.')) return;
