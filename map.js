@@ -472,7 +472,8 @@ function sheetHtml() {
       <button class="btn block" data-act="toggleFlag">Set green for hole ${h.n}</button>
       <button class="btn block" data-act="findGreens">${M.finding ? 'Searching…' : 'Find greens from map data'}</button>
       ${holeGeo(h.n) ? `<button class="btn block danger" data-act="clearGreen">Remove saved green for hole ${h.n}</button>` : ''}
-      <div class="grid2"><button class="btn" data-act="goHome">Home</button><button class="btn danger" data-act="exitRound">Exit round</button></div></div>`;
+      <div class="grid2"><button class="btn" data-act="exitRound">Pause & exit</button><button class="btn danger" data-act="endRound" data-v="${r.id}">End round</button></div>
+      <button class="btn block sm danger" data-act="deleteRound" data-v="${r.id}">Delete this round</button></div>`;
   }
   const last = shots.length ? shots.length - 1 : null;
   return head(`Shots · hole ${h.n}`) + `

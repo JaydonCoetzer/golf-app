@@ -46,6 +46,13 @@ for (const e of cj.elements) {
   courses.push({ osm: `${e.type[0]}${e.id}`, name: ((e.tags && e.tags.name) || '').trim(), tags: e.tags || {}, center: [R((b.minlat + b.maxlat) / 2), R((b.minlon + b.maxlon) / 2)],
     bb: [b.minlat - pad, b.minlon - pad, b.maxlat + pad, b.maxlon + pad], area: (b.maxlat - b.minlat) * (b.maxlon - b.minlon), holes: [], greens: [], hazards: [] });
 }
+// courses mapped only as a single point: give them a ~1.3 km box so nearby holes and greens still attach
+const nj = await overpass(`[out:json][timeout:300];${AREA}node["leisure"="golf_course"](area.za);out tags;`).catch(() => ({ elements: [] }));
+for (const e of nj.elements) {
+  const p = [R(e.lat), R(e.lon)];
+  if (courses.some(c => p[0] >= c.bb[0] && p[0] <= c.bb[2] && p[1] >= c.bb[1] && p[1] <= c.bb[3])) continue;
+  courses.push({ osm: `n${e.id}`, name: ((e.tags && e.tags.name) || '').trim(), tags: e.tags || {}, center: p, bb: [p[0] - 0.012, p[1] - 0.014, p[0] + 0.012, p[1] + 0.014], area: 1, holes: [], greens: [], hazards: [] });
+}
 console.log(courses.length, 'courses');
 
 console.log('Fetching golf features…');
@@ -102,4 +109,4 @@ for (const c of courses) {
 index.sort((a, b) => a.name.localeCompare(b.name));
 writeFileSync(`${OUT}/index.json`, JSON.stringify({ built: new Date().toISOString(), source: 'OpenStreetMap contributors (ODbL)', courses: index }));
 console.log(`Wrote ${index.length} courses; ${index.filter(c => c.h >= 9).length} with 9+ mapped holes.`);
-for (const c of index.filter(c => /parow/i.test(c.name))) console.log('Parow check:', JSON.stringify(c));
+for (const c of index.filter(c => /parow|devon/i.test(c.name))) console.log('Parow check:', JSON.stringify(c));

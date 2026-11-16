@@ -10,6 +10,11 @@ const BUILTIN_COURSES = [
   { name: 'Parow Golf Course', area: 'Parow, Cape Town',
     pars: [4, 3, 5, 4, 4, 5, 3, 4, 4, 4, 4, 5, 3, 4, 4, 5, 3, 4],
     si:   [9, 13, 5, 15, 11, 1, 17, 7, 3, 16, 12, 2, 18, 8, 4, 10, 14, 6] },
+  // Yellow tees, from public scorecards (AllSquare / Golf4Holland). Back-nine pars inferred from hole lengths: check the club card.
+  { name: 'Devonvale Golf & Wine Estate', area: 'Koelenhof, Stellenbosch', tees: 'Yellow', cr: 71.6, slope: 121, center: [-33.8953, 18.7995],
+    pars: [4, 5, 5, 4, 3, 4, 4, 4, 3, 4, 5, 4, 3, 4, 4, 3, 5, 4],
+    si:   [13, 5, 9, 3, 17, 7, 1, 11, 15, 8, 4, 18, 16, 2, 12, 14, 10, 6],
+    len:  [321, 472, 484, 355, 175, 353, 351, 282, 177, 405, 451, 295, 132, 369, 340, 215, 420, 365] },
 ];
 const PUTT_BUCKETS = ['0–1', '1–2', '2–4', '4–8', '8+'];
 
@@ -760,6 +765,14 @@ const ACTIONS = {
     toast('Round started. Good luck!');
   },
   resume(v) { S.activeId = v; const r = activeRound(); const i = r.holes.findIndex(h => !h.done); S.hole = i < 0 ? 0 : i; S.view = 'map'; },
+  endRound(v) {
+    const r = S.rounds.find(x => x.id === v); if (!r) return;
+    const n = playedHoles(r).length;
+    if (!n) { if (!confirm('No holes have a score yet. Delete this round?')) return; S.rounds = S.rounds.filter(x => x.id !== v); if (S.activeId === v) S.activeId = null; S.view = 'home'; toast('Round deleted'); return; }
+    if (!confirm(`End this round after ${n} hole${n > 1 ? 's' : ''}? It is saved to your rounds.`)) return;
+    r.completed = true; saveRoundCourse(r); if (S.activeId === v) S.activeId = null;
+    S.view = 'rounds'; S.detailId = v; S.detailTab = 'recap'; window.scrollTo(0, 0);
+  },
   exitRound() { S.activeId = null; S.draft = null; S.view = 'home'; toast('Round saved. Resume it any time.'); },
 
   /* hole */

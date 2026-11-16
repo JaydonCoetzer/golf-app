@@ -656,3 +656,4 @@ input[type=text], input[type=date], input[type=number], select, textarea { borde
 .tile.hero .k { color: rgba(255,255,255,.82); }
 .tile.hero .v small { color: rgba(255,255,255,.7) !important; }
 .sgbars > div { grid-template-columns: 104px 1fr 46px; }
+.h-liveacts { display: flex; gap: 8px; margin-top: -4px; } .h-liveacts button { flex: 1; border: 0; background: var(--surface); box-shadow: var(--shadow); border-radius: 10px; padding: 9px; font-size: 14px; font-weight: 650; color: var(--bad); } .h-liveacts button:first-child { color: var(--text); }

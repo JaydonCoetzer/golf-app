@@ -166,7 +166,8 @@ function viewHome() {
 
     <div class="h-title">Rounds <button class="h-all" data-act="allRounds">All rounds ›</button></div>
     ${inprog ? (() => { const hs = playedHoles(inprog), RA = aggregate([inprog]);
-      return `<button class="h-last live" data-act="resume" data-v="${inprog.id}"><div><small>In progress · thru ${hs.length}</small><b>${esc(inprog.course || 'Round')}</b></div><span class="h-score">${hs.length ? toPar(RA.strokes - RA.par) : '–'}</span></button>`; })() : ''}
+      return `<button class="h-last live" data-act="resume" data-v="${inprog.id}"><div><small>In progress · thru ${hs.length}</small><b>${esc(inprog.course || 'Round')}</b></div><span class="h-score">${hs.length ? toPar(RA.strokes - RA.par) : '–'}</span></button>
+      <div class="h-liveacts"><button data-act="endRound" data-v="${inprog.id}">End round</button><button data-act="deleteRound" data-v="${inprog.id}">Delete round</button></div>`; })() : ''}
     ${last ? `<button class="h-last" data-act="openRound" data-v="${last.id}"><div><small>Last round: ${shortDate(last.date)}</small><b>${esc(last.course || 'Round')}</b></div><span class="h-score">${lastScore}</span></button>` : ''}
 
     <div class="h-duo">

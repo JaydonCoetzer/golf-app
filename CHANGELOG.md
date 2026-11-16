@@ -13,3 +13,5 @@ Small improvements made by the improvement loop, newest first.
 - Other players: add up to 5 players (saved on this phone) when starting a round, enter their score and putts on the score sheet, and see them on the Recap scorecard.
 - Game formats: stroke play, Stableford, match play and skins, all using net scores from handicap and stroke index.
 - Strokes gained (Stats → Strokes gained): driving, approach, short game and putting per 18 against a tour-level baseline, with a practice priority. Counts only fully tracked holes.
+- End round / Delete round: in the round menu (☰) and under the in-progress card on Home.
+- Devonvale Golf & Wine Estate added with its scorecard; course database builder now also picks up courses mapped as a single point.
