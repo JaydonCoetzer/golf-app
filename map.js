@@ -196,7 +196,7 @@ function renderMap() {
   const r = activeRound();
   if (!r) { S.view = 'home'; return render(); }
   if (!$('#mapWrap')) {
-    $('#main').innerHTML = `<div id="mapWrap"><div id="map"><div class="empty" style="color:#ccc">Loading map…</div></div>
+    $('#main').innerHTML = `<div id="mapWrap"><div id="mapRot"><div id="map"><div class="empty" style="color:#ccc">Loading map…</div></div></div><div class="rot-attr">Imagery © Esri, Maxar, Earthstar Geographics · Course © OpenStreetMap</div>
       <div id="mapLeft" class="mp"></div><div id="mapRight" class="mp"></div>
       <div id="mapChips"></div>
       <div id="mapFab"></div>
@@ -214,10 +214,10 @@ function initMap() {
   loadLeaflet().then(() => {
     if (S.view !== 'map' || !$('#map')) return;
     $('#map').innerHTML = '';
-    M.map = L.map('map', { zoomControl: false, tap: true }).setView([-33.9, 18.6], 15);
+    rotPrepare();
+    M.map = L.map('map', { zoomControl: false, attributionControl: false, dragging: false, touchZoom: false, doubleClickZoom: false, scrollWheelZoom: false, boxZoom: false, keyboard: false, zoomSnap: 0, maxZoom: 21 }).setView([-33.9, 18.6], 15);
     L.tileLayer(ESRI, { maxZoom: 21, maxNativeZoom: 19, attribution: 'Imagery © Esri, Maxar, Earthstar Geographics · Greens © OpenStreetMap' }).addTo(M.map);
     M.layer = L.layerGroup().addTo(M.map);
-    M.map.on('click', onMapClick);
     fitHole();
     drawMap();
     mapOverlays();
@@ -274,7 +274,7 @@ function drawMap() {
     for (const r of [50, 100, 150, 200, 250]) {
       const rm = r * step; if (rm > toG + 10) break;
       L.circle(O, { radius: rm, color: '#fff', weight: 1, opacity: 0.45, fill: false, dashArray: '3 6', interactive: false }).addTo(M.layer);
-      L.circleMarker([O[0] + rm / 110540, O[1]], { radius: 0, opacity: 0, interactive: false })
+      L.circleMarker(g ? ringLabelPt(O, pinPt(h.n) || g.c, rm) : [O[0] + rm / 110540, O[1]], { radius: 0, opacity: 0, interactive: false })
         .bindTooltip(String(r), { permanent: true, direction: 'center', className: 'arclbl' }).addTo(M.layer);
     }
   }

@@ -849,3 +849,10 @@ body.sheet-open .tabs { display: none; }
 .qs-card { box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--brand-2) 40%, transparent), var(--shadow); }
 .qs-card .hs-step b { font-size: 22px; }
 .qs-card .hs-step button { width: 44px; height: 44px; font-size: 22px; }
+
+/* hole-up rotated map */
+#mapRot { position: absolute; inset: 0; overflow: hidden; touch-action: none; background: #1b2a22; }
+#mapRot #map { position: absolute; transform-origin: 50% 50%; }
+.ur { display: inline-block; transform: rotate(var(--brg, 0deg)); }
+.ur-box { position: absolute; left: 0; top: 0; width: 100%; height: 100%; }
+.rot-attr { position: absolute; z-index: 550; top: env(safe-area-inset-top); left: 0; font-size: 8.5px; color: #fff; background: rgba(0,0,0,.35); padding: 1px 6px; border-radius: 0 0 6px 0; pointer-events: none; }

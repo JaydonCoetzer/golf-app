@@ -34,7 +34,7 @@ function courseCentre(d) {
   return d.center || (S.geo[(d.course || '').trim().toLowerCase()] || {}).center || (BUILTIN_COURSES.find(x => sameCourse(x.name, d.course)) || {}).center || null;
 }
 async function loadWeather(name, c) {
-  if (!c || PS.w[name]) return;
+  if (!c || name in PS.w) return;
   PS.w[name] = { busy: true };
   try {
     const j = await (await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${c[0].toFixed(3)}&longitude=${c[1].toFixed(3)}&current=temperature_2m,wind_speed_10m,weather_code`)).json();

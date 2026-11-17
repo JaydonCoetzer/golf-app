@@ -18,7 +18,9 @@ function pinPt(n) {
 }
 function originPt() {
   const h = curHole(), g = holeGeo(h.n);
-  if (M.me && (!g || dist(M.me, g.c) < 1500)) return M.me;
+  // you're "on" the hole when you're no further from the green than the hole is long (plus a little)
+  const holeLen = g && g.tee ? dist(g.tee, g.c) : (h.len || 400);
+  if (M.me && (!g || dist(M.me, g.c) <= holeLen * 1.15 + 40)) return M.me;
   return (g && g.tee) || M.me || null;
 }
 const usingGps = () => { const o = originPt(); return !!(o && M.me && o === M.me); };
@@ -123,7 +125,7 @@ function drawAim() {
   const icon = L.divIcon({ className: 'aim-ico', html: `<span class="aim-dot"></span>${html}`, iconSize: [24, 24], iconAnchor: [12, 12] });
   if (AIM.marker && M.map.hasLayer(AIM.marker)) { AIM.marker.setLatLng(a); AIM.marker.setIcon(icon); }
   else {
-    AIM.marker = L.marker(a, { icon, draggable: true, autoPan: true, zIndexOffset: 1000 }).addTo(M.map);
+    AIM.marker = L.marker(a, { icon, draggable: false, zIndexOffset: 1000 }).addTo(M.map);
     AIM.marker.on('drag', e => { const p = e.target.getLatLng(); M.aim = [p.lat, p.lng]; drawAimLight(); });
     AIM.marker.on('dragend', () => { mapOverlays(); drawAim(); });
   }

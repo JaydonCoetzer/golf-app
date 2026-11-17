@@ -32,3 +32,6 @@ Small improvements made by the improvement loop, newest first.
 - Club distance estimates: set your driver and 7-iron (Quick setup in Golf bag) and every other club is estimated (irons ~7.5% of the 7-iron apart, woods from the driver, hybrids alongside the long irons). Your own manual or tracked distances always win.
 - Wedge part swings (80/60/40%) feed club suggestions, e.g. "Pitching wedge 60%".
 - Import club distances from a link (open it, or paste it in Golf bag → Import distances).
+- Hole-up GPS map: the map turns so the green is at the top and you (or the tee) at the bottom centre, zoomed so the whole hole fits. Labels stay upright; pan, pinch-zoom, double-tap zoom, tap-to-aim and dragging the aim point all work on the turned map. ⌖ re-frames the hole.
+- "On this hole" check is now based on the hole's length, so walking to the next tee no longer measures from the previous hole.
+- Fix: course page no longer keeps retrying the weather when there's no signal.
