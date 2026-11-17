@@ -11,7 +11,7 @@ function roundDiff(r) {
 }
 const WHS_TABLE = { 3: [1, -2], 4: [1, -1], 5: [1, 0], 6: [2, -1], 7: [2, 0], 8: [2, 0], 9: [3, 0], 10: [3, 0], 11: [3, 0], 12: [4, 0], 13: [4, 0], 14: [4, 0], 15: [5, 0], 16: [5, 0], 17: [6, 0], 18: [6, 0], 19: [7, 0], 20: [8, 0] };
 function handicapIndex() {
-  const rs = S.rounds.filter(r => r.completed).map(r => ({ r, d: roundDiff(r) })).filter(x => x.d != null)
+  const rs = S.rounds.filter(r => r.completed && !r.noHcp).map(r => ({ r, d: roundDiff(r) })).filter(x => x.d != null)
     .sort((a, b) => (b.r.date || '').localeCompare(a.r.date || '') || b.r.created - a.r.created).slice(0, 20);
   const n = rs.length;
   if (n < 3) return { n, index: null };

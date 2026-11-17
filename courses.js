@@ -118,7 +118,7 @@ function paintNearby() {
   const el = $('#nearby'); if (!el) return;
   const N = CD.nearby;
   if (!N || !N.list) { el.innerHTML = `<div class="nb-card"><div class="nb-h">Courses near you</div><div class="hr-msg">${CD.nearbyBusy ? '<span class="spin"></span> Finding courses near you…' : esc(CD.nearbyErr || '')} ${CD.nearbyBusy ? '' : '<button class="chipbtn" data-act="nearbyRefresh">Find nearby</button>'}</div></div>`; return; }
-  const list = N.list.map(c => ({ ...c, km: dist(N.me, c.center) / 1000 })).sort((a, b) => a.km - b.km).slice(0, $('#homeResults') ? 2 : 6);
+  const list = N.list.map(c => ({ ...c, km: dist(N.me, c.center) / 1000 })).sort((a, b) => a.km - b.km).slice(0, S.view === 'home' ? 2 : 6);
   CD.nearHits = list;
   el.innerHTML = `<div class="nb-card"><div class="nb-h">Closest to you ${CD.nearbyBusy ? '<span class="spin"></span>' : '<button class="nb-r" data-act="nearbyRefresh" aria-label="Refresh">↻</button>'}</div>
     ${list.length ? list.map((c, i) => `<button class="nb-row" data-act="pickNear" data-v="${i}"><span class="hr-n"><b>${esc(c.name)}</b>${c.h ? `<small>${c.h} holes mapped</small>` : ''}</span><span>${c.km < 1 ? 'here' : c.km.toFixed(c.km < 10 ? 1 : 0) + ' km'} ›</span></button>`).join('') : '<div class="hr-msg">No golf courses found within 40 km.</div>'}</div>`;

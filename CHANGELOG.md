@@ -26,3 +26,6 @@ Small improvements made by the improvement loop, newest first.
 - Aim assist on the round map: draggable aim point with distance and plays-like box, automatic club pick for the aim distance (tap to choose another club), the club's dispersion oval drawn at the aim point, and an AIM button that finds the best aim point for your dispersion (on the green, away from water and bunkers).
 - Set pin (today's hole position) and set tee per hole; distances run from the tee when your GPS isn't on the hole, so the map also works when previewing at home.
 - Track on/off switch for shot tracking, and a 10-step map tour (shown once, replay from the round menu).
+- New course page / round setup: satellite photo hero with weather, holes/par/length/rating-slope for the chosen tee, Course preview and Play buttons, fold-out scorecard, and tap-to-pick rows for tee box (Men/Women), round (18 / front 9 / back 9), date, game format, handicap stepper, and players. Option to leave a round out of the handicap.
+- Play tab without a course: search, nearby courses and your saved courses.
+- Devonvale tee data (Yellow, White, Blue, Red with rating and slope).
