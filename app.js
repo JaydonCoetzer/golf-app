@@ -206,7 +206,7 @@ function render() {
   else m.innerHTML = viewSettings();
   { const st = $('.stabs .on'); if (st) st.scrollIntoView({ block: 'nearest', inline: 'center' }); }
   if ($('#rpMap')) rpDraw(); else if (typeof stopReplay === 'function') stopReplay();
-  if ($('#nearby')) { paintNearby(); if (!CD.autoTried) { CD.autoTried = true; loadNearby(); } }
+  if ($('#nearby')) { paintNearby(); if (!CD.nearbyBusy && (!CD.nearby || !CD.nearby.at || Date.now() - CD.nearby.at > 120000 || !CD.autoTried)) { CD.autoTried = true; loadNearby(); } }
   if (S.view === 'play' && activeRound()) {
     const cur = $('.hchip.cur'); if (cur) cur.scrollIntoView({ block: 'nearest', inline: 'center' });
   }

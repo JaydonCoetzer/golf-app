@@ -35,3 +35,4 @@ Small improvements made by the improvement loop, newest first.
 - Hole-up GPS map: the map turns so the green is at the top and you (or the tee) at the bottom centre, zoomed so the whole hole fits. Labels stay upright; pan, pinch-zoom, double-tap zoom, tap-to-aim and dragging the aim point all work on the turned map. ⌖ re-frames the hole.
 - "On this hole" check is now based on the hole's length, so walking to the next tee no longer measures from the previous hole.
 - Fix: course page no longer keeps retrying the weather when there's no signal.
+- Closest courses: always uses a fresh, accurate GPS fix (re-checked when you come back to the app, every 2 minutes on Home/Play, or tap ↻), includes your saved and hand-entered courses such as Devonvale, removes duplicate entries and shows when the location was last updated.

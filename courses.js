@@ -86,20 +86,28 @@ async function gcaSearch(q) {
 }
 
 /* ---------- nearby (GPS + OpenStreetMap) ---------- */
-function here() {
-  return new Promise((res, rej) => {
-    if (!navigator.geolocation) return rej(new Error('no gps'));
-    navigator.geolocation.getCurrentPosition(p => res([p.coords.latitude, p.coords.longitude]), rej, { enableHighAccuracy: false, maximumAge: 10 * 60000, timeout: 15000 });
-  });
+function here(fresh) {
+  const get = opts => new Promise((res, rej) => navigator.geolocation.getCurrentPosition(p => res([p.coords.latitude, p.coords.longitude, p.coords.accuracy]), rej, opts));
+  if (!navigator.geolocation) return Promise.reject(new Error('no gps'));
+  // a fresh, accurate fix first; fall back to a quick rough one
+  return get({ enableHighAccuracy: true, maximumAge: fresh ? 0 : 60000, timeout: 12000 })
+    .catch(e => (e && e.code === 1 ? Promise.reject(e) : get({ enableHighAccuracy: false, maximumAge: 300000, timeout: 8000 })));
 }
 async function loadNearby(force) {
   if (CD.nearbyBusy) return;
   CD.nearbyBusy = true; paintNearby();
   try {
-    const me = await here();
+    const fix = await here(force), me = [fix[0], fix[1]]; CD.acc = fix[2];
     const fresh = CD.nearby && Date.now() - CD.nearby.at < 864e5 && dist(me, CD.nearby.me) < 5000;
     const db = await loadDB();
-    if (db.length) { CD.nearby = { at: Date.now(), me, list: db.filter(c => c.h >= 9 || !/driving range|practice|academy|mini.?golf|putt/i.test(c.name)).map(c => ({ name: c.name, id: c.id, center: c.c, h: c.h })) }; }
+    if (db.length) {
+      // database courses + your saved / built-in courses (e.g. hand-entered cards), one entry per course name
+      const byName = new Map();
+      const add = c => { const k = c.name.trim().toLowerCase(), o = byName.get(k); if (!o || (c.h || 0) > (o.h || 0)) byName.set(k, c); };
+      db.filter(c => c.h >= 9 || !/driving range|practice|academy|mini.?golf|putt/i.test(c.name)).forEach(c => add({ name: c.name, id: c.id, center: c.c, h: c.h }));
+      allCourses().forEach(c => { const ctr = c.center || (S.geo[c.name.trim().toLowerCase()] || {}).center; if (ctr) add({ name: c.name, center: ctr, h: c.pars.length, saved: true }); });
+      CD.nearby = { at: Date.now(), me, list: [...byName.values()] }; save('gs.nearby', CD.nearby);
+    }
     else if (force || !fresh) {
       const j = await overpass(`[out:json][timeout:25];nwr["leisure"="golf_course"]["name"](around:40000,${me[0]},${me[1]});out tags center;`);
       const seen = new Set(), list = [];
@@ -120,8 +128,9 @@ function paintNearby() {
   if (!N || !N.list) { el.innerHTML = `<div class="nb-card"><div class="nb-h">Courses near you</div><div class="hr-msg">${CD.nearbyBusy ? '<span class="spin"></span> Finding courses near you…' : esc(CD.nearbyErr || '')} ${CD.nearbyBusy ? '' : '<button class="chipbtn" data-act="nearbyRefresh">Find nearby</button>'}</div></div>`; return; }
   const list = N.list.map(c => ({ ...c, km: dist(N.me, c.center) / 1000 })).sort((a, b) => a.km - b.km).slice(0, S.view === 'home' ? 2 : 6);
   CD.nearHits = list;
-  el.innerHTML = `<div class="nb-card"><div class="nb-h">Closest to you ${CD.nearbyBusy ? '<span class="spin"></span>' : '<button class="nb-r" data-act="nearbyRefresh" aria-label="Refresh">↻</button>'}</div>
-    ${list.length ? list.map((c, i) => `<button class="nb-row" data-act="pickNear" data-v="${i}"><span class="hr-n"><b>${esc(c.name)}</b>${c.h ? `<small>${c.h} holes mapped</small>` : ''}</span><span>${c.km < 1 ? 'here' : c.km.toFixed(c.km < 10 ? 1 : 0) + ' km'} ›</span></button>`).join('') : '<div class="hr-msg">No golf courses found within 40 km.</div>'}</div>`;
+  const ago = Math.round((Date.now() - N.at) / 60000);
+  el.innerHTML = `<div class="nb-card"><div class="nb-h"><span>Closest to you<small class="nb-ago">${CD.nearbyBusy ? 'finding your location…' : ago < 1 ? 'updated just now' : ago < 60 ? `updated ${ago} min ago` : 'location is old, tap ↻'}${CD.acc && CD.acc > 300 && !CD.nearbyBusy ? ' · rough location' : ''}</small></span>${CD.nearbyBusy ? '<span class="spin"></span>' : '<button class="nb-r" data-act="nearbyRefresh" aria-label="Refresh">↻</button>'}</div>
+    ${list.length ? list.map((c, i) => `<button class="nb-row" data-act="pickNear" data-v="${i}"><span class="hr-n"><b>${esc(c.name)}</b>${c.h ? `<small>${c.saved ? `${c.h} holes · scorecard saved` : `${c.h} holes mapped`}</small>` : ''}</span><span>${c.km < 1 ? 'here' : c.km.toFixed(c.km < 10 ? 1 : 0) + ' km'} ›</span></button>`).join('') : '<div class="hr-msg">No golf courses found within 40 km.</div>'}</div>`;
 }
 
 /* ---------- search ---------- */
@@ -321,3 +330,6 @@ Object.assign(ACTIONS, {
   nearbyRefresh() { loadNearby(true); },
   async gcaTest() { const r = await gcaSearch('royal cape'); toast(r.length ? `Key works ✓ (${r.length} results)` : 'No results. Check the key'); },
 });
+
+// when the app comes back to the screen, refresh "closest to you"
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && $('#nearby') && !CD.nearbyBusy) loadNearby(true); });

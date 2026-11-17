@@ -856,3 +856,5 @@ body.sheet-open .tabs { display: none; }
 .ur { display: inline-block; transform: rotate(var(--brg, 0deg)); }
 .ur-box { position: absolute; left: 0; top: 0; width: 100%; height: 100%; }
 .rot-attr { position: absolute; z-index: 550; top: env(safe-area-inset-top); left: 0; font-size: 8.5px; color: #fff; background: rgba(0,0,0,.35); padding: 1px 6px; border-radius: 0 0 6px 0; pointer-events: none; }
+.nb-h > span { display: flex; flex-direction: column; }
+.nb-ago { font-size: 11.5px; font-weight: 600; color: var(--muted); }
