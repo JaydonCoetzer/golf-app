@@ -27,7 +27,7 @@ const isRight = () => (S.settings.hand || 'R') === 'R';
 
 /* ---------- distances ---------- */
 function trueDist(k) {
-  const good = clubShots(k).filter(o => !o.out).slice(0, 20).map(o => o.d).sort((a, b) => a - b);
+  const good = clubShots(k).filter(o => !o.out).slice(0, 10).map(o => o.d).sort((a, b) => a - b);
   if (good.length < TRUE_MIN) return { d: null, n: good.length };
   const cut = Math.floor(good.length * 0.15), mid = good.slice(cut, good.length - cut);
   return { d: sum(mid) / mid.length, n: good.length };
@@ -89,16 +89,17 @@ function defaultEllipse(k) {
   const tilt = (isRight() ? -1 : 1) * 20 * Math.PI / 180;
   return { cx: 0, cy: -d * 0.02, rx: wide, ry: deep, ang: tilt, typical: true };
 }
-function dispersionSvg(k, pts, E) {
-  const reach = Math.max(10, ...pts.map(p => Math.max(Math.abs(p.x), Math.abs(p.y))), E.rx + Math.hypot(E.cx, E.cy), E.ry);
+function dispersionSvg(k, pts, E, accR) {
+  const reach = Math.max(10, accR || 0, ...pts.map(p => Math.max(Math.abs(p.x), Math.abs(p.y))), E.rx + Math.hypot(E.cx, E.cy), E.ry);
   const step = reach > 45 ? 20 : 10, rings = Math.max(3, Math.ceil(reach / step)), R = 140, sc = R / (rings * step);
   const X = x => 160 + x * sc, Y = y => 160 - y * sc, u = S.settings.unit;
   const deg = -E.ang * 180 / Math.PI;
   return `<svg class="disp" viewBox="0 0 320 320" role="img" aria-label="Dispersion for ${esc(CLUB_NAME[k])}">
     <line x1="10" y1="160" x2="310" y2="160" class="ax"/><line x1="160" y1="10" x2="160" y2="310" class="ax"/>
     ${Array.from({ length: rings }, (_, i) => `<circle cx="160" cy="160" r="${((i + 1) * step * sc).toFixed(1)}" class="rg"/><text x="164" y="${(160 - (i + 1) * step * sc + 12).toFixed(1)}" class="rl">${fd((i + 1) * step)} ${u}</text>`).join('')}
+    ${accR ? `<circle cx="160" cy="160" r="${(accR * sc).toFixed(1)}" class="accz"/>` : ''}
     <ellipse cx="${X(E.cx).toFixed(1)}" cy="${Y(E.cy).toFixed(1)}" rx="${(E.rx * sc).toFixed(1)}" ry="${(E.ry * sc).toFixed(1)}" transform="rotate(${deg.toFixed(1)} ${X(E.cx).toFixed(1)} ${Y(E.cy).toFixed(1)})" class="el ${E.typical ? 'typ' : ''}"/>
-    ${pts.map(p => `<circle cx="${X(Math.max(-reach, Math.min(reach, p.x))).toFixed(1)}" cy="${Y(Math.max(-reach, Math.min(reach, p.y))).toFixed(1)}" r="5" class="pt ${p.pen ? 'pen' : p.bad ? 'bad' : ''}"/>`).join('')}
+    ${pts.map(p => `<circle cx="${X(Math.max(-reach, Math.min(reach, p.x))).toFixed(1)}" cy="${Y(Math.max(-reach, Math.min(reach, p.y))).toFixed(1)}" r="5" class="pt ${p.acc === false ? 'miss' : ''}"/>`).join('')}
     <circle cx="160" cy="160" r="5" class="tg"/>
     <text x="160" y="22" text-anchor="middle" class="cap">Long</text><text x="160" y="306" text-anchor="middle" class="cap">Short</text>
     <text x="14" y="156" class="cap">Left</text><text x="306" y="156" text-anchor="end" class="cap">Right</text></svg>`;
@@ -109,6 +110,20 @@ function clubSG(k) {
   let v = 0, n = 0;
   for (const r of S.rounds) for (const h of r.holes) { const x = sgHole(r, h); if (!x || !x.shots) continue; for (const s of x.shots) if (s.club === k) { v += s.v; n++; } }
   return n ? { v: v / n, n } : null;
+}
+
+/* ---------- club icons (simple line drawings by club type) ---------- */
+function clubIcon(k) {
+  const type = k === 'Pt' ? 'putter' : /^(Dr|\dW)$/.test(k) ? 'wood' : /H$|^Hy$/.test(k) ? 'hybrid' : /^(PW|GW|SW|LW)$/.test(k) ? 'wedge' : 'iron';
+  const head = {
+    wood: '<path d="M30 52c-10 0-18-6-18-14 0-6 6-10 14-10 12 0 22 6 22 14 0 6-8 10-18 10z" class="ci-h"/><path d="M14 40c6 3 18 4 30 1" class="ci-l"/>',
+    hybrid: '<path d="M32 52c-9 0-16-5-16-12 0-5 5-8 12-8 10 0 18 5 18 11 0 6-6 9-14 9z" class="ci-h"/><path d="M18 42c5 2 15 3 25 0" class="ci-l"/>',
+    iron: '<path d="M22 54l-4-14c-1-4 2-7 6-7h16l6 12c1 3-1 6-4 7z" class="ci-h"/><path d="M22 44h20M23 49h19" class="ci-l"/>',
+    wedge: '<path d="M20 54l-5-17c-1-4 2-6 6-6h14l12 13c2 3 0 7-4 8z" class="ci-h"/><path d="M20 42h22M21 47h22" class="ci-l"/>',
+    putter: '<rect x="12" y="44" width="30" height="10" rx="3" class="ci-h"/>',
+  }[type];
+  const shaft = type === 'putter' ? 'M40 6L36 44' : 'M44 4L38 34';
+  return `<svg class="club-ico" viewBox="0 0 60 60" aria-hidden="true"><path d="${shaft}" class="ci-s"/>${head}</svg>`;
 }
 
 /* ---------- views ---------- */
@@ -134,6 +149,11 @@ function viewBag() {
       <div class="row between"><span><b>Use True Distance for all clubs</b><div class="sub">From your better recent shots once a club has ${TRUE_MIN}+. Otherwise your manual distance is used.</div></span>${toggle('trueAll', S.settings.useTrue !== false)}</div>
       <div><div class="field-title"><span>I play</span></div>${seg('hand', [['R', 'Right-handed'], ['L', 'Left-handed']], S.settings.hand || 'R')}</div></div>`;
 }
+function accRadius(k) {
+  const v = Number((S.settings.accR || {})[k]);
+  if (v > 0) return S.settings.unit === 'yd' ? v * 0.9144 : v;
+  const d = clubDist(k).d || 150; return d >= 200 ? 25 : d >= 150 ? 20 : d >= 100 ? 15 : 10;
+}
 function toggle(act, on, v = '') { return `<button class="tgl ${on ? 'on' : ''}" data-act="${act}" data-v="${v}" role="switch" aria-checked="${on}"><i></i></button>`; }
 
 function viewClub() {
@@ -144,18 +164,21 @@ function viewClub() {
   const E = mine ? fitEllipse(pts) : defaultEllipse(k);
   const P = a => (pts.length ? Math.round((a / pts.length) * 100) : 0);
   const typ = clubDist(k).d || 150;
-  const onT = pts.filter(p => Math.abs(p.x) <= Math.max(8, typ * 0.06) && Math.abs(p.y) <= Math.max(8, typ * 0.07)).length;
+  const accR = accRadius(k), isAcc = p => Math.hypot(p.x, p.y) <= accR;
+  pts.forEach(p => { p.acc = isAcc(p); });
+  const onT = pts.filter(isAcc).length;
   const L = pts.filter(p => p.x < -Math.max(5, typ * 0.04)).length, Rr = pts.filter(p => p.x > Math.max(5, typ * 0.04)).length;
   const Lg = pts.filter(p => p.y > Math.max(5, typ * 0.05)).length, Sh = pts.filter(p => p.y < -Math.max(5, typ * 0.05)).length;
   const tee = pts.filter(p => p.tee && p.h.par > 3), fw = tee.filter(p => p.h.fw === 'hit').length;
   const avgLat = pts.length ? sum(pts.map(p => Math.abs(p.x))) / pts.length : null;
   const editing = S.distEdit === k;
   return `
-  <div class="card"><div class="row between"><div><div class="sub">Model</div><input class="cl-model" data-bind="clubModel" data-v="${k}" value="${esc(model)}" placeholder="e.g. TaylorMade Qi10 9°"></div></div></div>
+  <div class="cl-head">${clubIcon(k)}<div class="cl-title"><b>${esc(n)}</b>
+    <input class="cl-model" data-bind="clubModel" data-v="${k}" value="${esc(model)}" placeholder="Add brand / model" aria-label="Club model"></div></div>
   <div class="card"><h2>Distance <button class="btn sm dark" data-act="distEdit" data-v="${k}">${editing ? 'Done' : 'Update distance'}</button></h2>
     <div class="dd"><div><small>True distance</small><b>${t.d ? fd(t.d) + ' ' + u : '–'}</b></div>
       <div><small>Manual</small>${editing ? `<input type="number" inputmode="numeric" data-bind="bag" data-v="${k}" value="${esc((S.settings.bag || {})[k] ?? '')}" placeholder="${u}" autofocus>` : `<b>${m ? fd(m) + ' ' + u : '–'}</b>`}</div></div>
-    <div class="sub">True Distance comes from your better recent strikes. Mishits and outliers are left out.</div>
+    <div class="sub">True Distance is from your last 10 good shots. Mishits, penalty shots and outliers are left out.</div>
     ${t.d ? '' : `<div class="warnt" style="margin-top:6px">Hit ${TRUE_MIN - t.n} more good shot${TRUE_MIN - t.n === 1 ? '' : 's'} to use your True Distance</div>`}
     <hr><div class="row between"><b>Use True Distance</b>${toggle('trueClub', usesTrue(k), k)}</div>
     <div class="row between" style="margin-top:10px"><b>Use true distances for all clubs</b>${toggle('trueAll', S.settings.useTrue !== false)}</div></div>
@@ -163,17 +186,21 @@ function viewClub() {
     <div class="sub">${sg ? `Per shot, against a tour-level player, from ${sg.n} shot${sg.n > 1 ? 's' : ''} on fully tracked holes.` : 'No fully tracked holes with this club yet.'}</div></div>
   ${k === 'Pt' ? '' : `<div class="card"><h2>Shot accuracy <span class="sub">${pts.length} shot${pts.length === 1 ? '' : 's'}</span></h2>
     ${mine ? '' : `<div class="warnt">Hit ${8 - pts.length} more ${esc(n.toLowerCase())} shot${8 - pts.length === 1 ? '' : 's'} for your own dispersion. Showing a typical ${isRight() ? 'right' : 'left'}-handed pattern for your handicap.</div>`}
-    ${dispersionSvg(k, pts, E)}
-    <div class="legend" style="justify-content:center"><span><i style="background:#2d5cc0"></i>Shot</span><span><i style="background:#f5a524"></i>Mishit</span><span><i style="background:#e5484d"></i>Penalty</span><span><i style="background:rgba(45,92,192,.25)"></i>${mine ? 'Your dispersion (≈86% of shots)' : 'Typical dispersion'}</span></div>
+    <div class="acc-row"><span><i style="background:#2d5cc0"></i>Accurate: within</span>
+      <select data-bind="accR" data-v="${k}" aria-label="Accuracy radius">${[5, 10, 15, 20, 25, 30].map(v => `<option value="${v}" ${Math.round(toUnit(accR)) === v ? 'selected' : ''}>${v} ${u}</option>`).join('')}</select>
+      <span style="margin-left:auto"><i style="background:#e5484d"></i>Not</span></div>
+    ${pts.length ? `<div class="acc-big"><b>${P(onT)}%</b> of shots within ${fd(accR)} ${u} of the aim point</div>` : ''}
+    ${dispersionSvg(k, pts, E, accR)}
+    <div class="legend" style="justify-content:center"><span><i style="background:rgba(45,92,192,.25)"></i>${mine ? 'Your dispersion (≈86% of shots)' : 'Typical dispersion'}</span></div>
     ${pts.length ? `<div class="tiles" style="margin-top:12px">
-      ${tile('On target', P(onT) + '%', 'within about 6% of the aim point')}
+      ${tile('Accurate', P(onT) + '%', `within ${fd(accR)} ${u}`)}
       ${tile('Dispersion', mine ? `${fd(E.rx * 2)} × ${fd(E.ry * 2)} ${u}` : '–', mine ? 'oval width × depth' : 'needs 8 shots')}
       ${tile('Left / right', `${P(L)}% / ${P(Rr)}%`, avgLat != null ? `avg ${fd(avgLat)} ${u} offline` : '')}
       ${tile('Long / short', `${P(Lg)}% / ${P(Sh)}%`, '')}
       ${tee.length ? tile('Fairways off the tee', fmtPct(fw, tee.length), `${fw}/${tee.length}`) : ''}
       ${tile('Mishits', fmtPct(shots.filter(o => o.s.bad && o.s.bad !== 'good').length, shots.length), '')}</div>` : '<div class="sub" style="margin-top:8px">Track shots with this club (📍 Mark on the map) to see your accuracy.</div>'}</div>`}
-  <div class="card"><h2>Shot history</h2>
-    ${shots.map(o => `<div class="list-item" style="cursor:default${o.out ? ';opacity:.45' : ''}"><div><b>${fmtDate(o.r.date)}</b><div class="sub">${esc(o.r.course || '')} · hole ${o.h.n}${o.s.bad && o.s.bad !== 'good' ? ' · ' + o.s.bad : ''}${o.s.pen ? ' · ' + PEN_NAME[o.s.pen] : ''}</div></div><div class="big" style="font-size:19px">${o.out ? '⊘ ' : ''}${fd(o.d)}<small style="font-size:11px"> ${u}</small></div></div>`).join('') || '<div class="sub">No tracked shots yet.</div>'}</div>
+  <div class="card"><details class="help"><summary><b>Shot history</b> <span class="sub">${shots.length} shot${shots.length === 1 ? '' : 's'}</span></summary>
+    ${shots.map(o => `<div class="list-item" style="cursor:default${o.out ? ';opacity:.45' : ''}"><div><b>${fmtDate(o.r.date)}</b><div class="sub">${esc(o.r.course || '')} · hole ${o.h.n}${o.s.bad && o.s.bad !== 'good' ? ' · ' + o.s.bad : ''}${o.s.pen ? ' · ' + PEN_NAME[o.s.pen] : ''}</div></div><div class="big" style="font-size:19px">${o.out ? '⊘ ' : ''}${fd(o.d)}<small style="font-size:11px"> ${u}</small></div></div>`).join('') || '<div class="sub">No tracked shots yet.</div>'}</details></div>
   ${bagKeys().includes(k) ? `<button class="btn block danger" style="margin-bottom:12px" data-act="toggleClub" data-v="${k}">Remove ${esc(n)} from bag</button>` : `<button class="btn block" style="margin-bottom:12px" data-act="toggleClub" data-v="${k}">Add ${esc(n)} to bag</button>`}`;
 }
 // Stats → Clubs uses the same rows, with a distance range bar
@@ -199,6 +226,10 @@ Object.assign(ACTIONS, {
   trueClub(v) { S.settings.manualOnly = S.settings.manualOnly || {}; S.settings.manualOnly[v] = !S.settings.manualOnly[v]; },
   trueAll() { S.settings.useTrue = S.settings.useTrue === false; },
   hand(v) { S.settings.hand = v; },
+});
+document.addEventListener('change', e => {
+  const el = e.target.closest('[data-bind="accR"]'); if (!el) return;
+  S.settings.accR = Object.assign({}, S.settings.accR, { [el.dataset.v]: Number(el.value) }); persist(); render();
 });
 document.addEventListener('input', e => {
   const el = e.target.closest('[data-bind="clubModel"]'); if (!el) return;

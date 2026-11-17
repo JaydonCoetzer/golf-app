@@ -22,3 +22,4 @@ Small improvements made by the improvement loop, newest first.
 - Club pages: True Distance (from better recent strikes, outliers excluded) vs manual distance with per-club and all-clubs toggles, strokes gained per shot, accuracy (on target, left/right, long/short, fairways off the tee, mishits) and a dispersion oval fitted to your shots (typical oval for your handicap until 8 shots).
 - Right/left-handed setting (Settings → Player, or Golf bag) sets the slant of the dispersion oval.
 - Club picker on the map and in Replay only shows clubs in your bag.
+- Club page: club-type icon header with editable model, True Distance from last 10 good shots, adjustable accuracy radius (accurate shots blue, others red), shot history folded away.

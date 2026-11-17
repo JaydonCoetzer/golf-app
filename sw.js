@@ -1,5 +1,5 @@
 // Offline cache for the app shell. Bump CACHE when files change so phones pick up the update.
-const CACHE = 'golf-stats-v29';
+const CACHE = 'golf-stats-v30';
 const FILES = ['./', 'index.html', 'styles.css', 'app.js', 'map.js', 'features.js', 'courses.js', 'preview.js', 'profile.js', 'replay.js', 'stats.js', 'players.js', 'sg.js', 'clubs.js', 'vendor/leaflet/leaflet.js', 'vendor/leaflet/leaflet.css', 'manifest.webmanifest',
   'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png'];
 
