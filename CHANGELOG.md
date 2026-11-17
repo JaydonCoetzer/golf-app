@@ -23,3 +23,6 @@ Small improvements made by the improvement loop, newest first.
 - Right/left-handed setting (Settings → Player, or Golf bag) sets the slant of the dispersion oval.
 - Club picker on the map and in Replay only shows clubs in your bag.
 - Club page: club-type icon header with editable model, True Distance from last 10 good shots, adjustable accuracy radius (accurate shots blue, others red), shot history folded away.
+- Aim assist on the round map: draggable aim point with distance and plays-like box, automatic club pick for the aim distance (tap to choose another club), the club's dispersion oval drawn at the aim point, and an AIM button that finds the best aim point for your dispersion (on the green, away from water and bunkers).
+- Set pin (today's hole position) and set tee per hole; distances run from the tee when your GPS isn't on the hole, so the map also works when previewing at home.
+- Track on/off switch for shot tracking, and a 10-step map tour (shown once, replay from the round menu).

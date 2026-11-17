@@ -749,3 +749,44 @@ svg.disp { width: 100%; max-width: 340px; display: block; margin: 8px auto; }
 details.help > summary { list-style: none; display: flex; align-items: center; gap: 8px; }
 details.help > summary::after { content: '›'; margin-left: auto; font-size: 22px; color: var(--muted); transition: transform .15s; }
 details.help[open] > summary::after { transform: rotate(90deg); }
+
+/* aim assist */
+#mapFabL { position: absolute; z-index: 600; left: 10px; bottom: calc(150px + env(safe-area-inset-bottom)); display: flex; flex-direction: column; gap: 8px; }
+#mapFabL .fab, #mapFab .fab.sm { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 52px; height: 52px; font-size: 18px; line-height: 1; }
+#mapFabL .fab small { font-size: 10px; font-weight: 800; margin-top: 3px; }
+#mapFabL .fab.on { background: #2d5cc0 !important; color: #fff !important; }
+#aimCard { position: absolute; z-index: 640; left: 50%; transform: translateX(-50%); bottom: calc(84px + env(safe-area-inset-bottom)); display: flex; gap: 6px; align-items: stretch; }
+#aimCard:empty { display: none; }
+#aimCard button { border: 0; border-radius: 14px; background: rgba(255,255,255,.97); color: #16181d; box-shadow: 0 4px 16px rgba(0,0,0,.28); font-weight: 750; }
+.ac-aim { padding: 0 12px; color: #2d5cc0 !important; font-size: 15px; letter-spacing: .5px; }
+.ac-club { display: flex; align-items: center; gap: 6px; padding: 9px 12px; font-size: 16px; white-space: nowrap; }
+.ac-club small { font-size: 13px; font-weight: 800; } .ac-club small.pos { color: #1f8a5b; } .ac-club small.neg { color: #d0384a; }
+.ac-club i { font-style: normal; font-size: 10px; font-weight: 700; color: #6b6f7a; text-transform: uppercase; }
+.ac-reset { width: 40px; font-size: 18px; }
+#mapChips { bottom: calc(140px + env(safe-area-inset-bottom)); }
+.aim-ico { position: relative; }
+.aim-dot { position: absolute; left: 0; top: 0; width: 24px; height: 24px; border-radius: 50%; background: #4f8dff; border: 3px solid #fff; box-shadow: 0 0 0 2px rgba(0,0,0,.35), 0 2px 8px rgba(0,0,0,.5); }
+.aim-box { position: absolute; left: 50%; top: 30px; transform: translateX(-50%); background: rgba(255,255,255,.97); color: #16181d; border-radius: 10px; padding: 4px 10px; text-align: center; white-space: nowrap; box-shadow: 0 3px 10px rgba(0,0,0,.35); pointer-events: none; }
+.aim-box b { display: block; font-size: 22px; font-weight: 850; line-height: 1.1; }
+.aim-box span { font-size: 14px; font-weight: 800; } .aim-box .up { color: #1f8a5b; } .aim-box .dn { color: #d0384a; }
+.leaflet-tooltip.midlbl { background: none; border: 0; box-shadow: none; color: #fff; font-weight: 800; font-size: 20px; text-shadow: 0 1px 5px rgba(0,0,0,.85), 0 0 2px #000; padding: 0; }
+.leaflet-tooltip.midlbl::before { display: none; }
+.pin-flag { font-size: 24px; filter: drop-shadow(0 1px 3px rgba(0,0,0,.7)); }
+.mp-pinlbl { margin: -4px 0 4px; font-size: 10px; }
+/* tour */
+#mapTour { position: absolute; inset: 0; z-index: 900; pointer-events: none; }
+#mapTour.on { pointer-events: auto; }
+.tour-bg { position: absolute; inset: 0; background: rgba(0,0,0,.45); }
+.tour-ring { position: fixed; border-radius: 16px; box-shadow: 0 0 0 3px #4f8dff, 0 0 0 9999px rgba(0,0,0,.25); pointer-events: none; }
+.tour-card { position: fixed; left: 14px; right: 14px; background: #fff; color: #16181d; border-radius: 18px; padding: 16px 18px; box-shadow: 0 10px 40px rgba(0,0,0,.35); }
+.tour-card small { color: #6b6f7a; font-weight: 700; }
+.tour-card b { display: block; font-size: 21px; margin: 2px 0 4px; }
+.tour-card p { margin: 0 0 12px; font-size: 15px; line-height: 1.45; color: #2a2d35; }
+.tour-btns { display: flex; align-items: center; gap: 10px; }
+.tour-btns span { flex: 1; }
+.tour-btns button { border: 0; background: none; font-weight: 750; font-size: 16px; color: #16181d; padding: 10px 6px; }
+.tour-btns .go { background: #2d5cc0; color: #fff; border-radius: 12px; padding: 10px 22px; }
+#mapFabL { bottom: auto; }
+#mapFabL.row { flex-direction: row; }
+#mapChips { top: calc(12px + env(safe-area-inset-top)); bottom: auto; left: 84px; right: 106px; }
+#mapChips .mchip { font-size: 13px; padding: 7px 10px; }

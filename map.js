@@ -53,10 +53,11 @@ function geoKey() { const r = activeRound(); return ((r && r.course) || 'unnamed
 function courseGeo() { const k = geoKey(); return (S.geo[k] = S.geo[k] || { holes: {}, greens: [] }); }
 function holeGeo(n) { return courseGeo().holes[n] || null; }
 function greenDistances(n) {
-  const g = holeGeo(n); if (!g || !M.me) return null;
-  const c = dist(M.me, g.c);
+  const g = holeGeo(n), o = typeof originPt === 'function' ? originPt() : M.me; if (!g || !o) return null;
+  const pin = typeof pinPt === 'function' ? pinPt(n) : g.c;
+  const c = dist(o, pin || g.c);
   if (!g.poly) return { c };
-  const ds = g.poly.map(p => dist(M.me, p));
+  const ds = g.poly.map(p => dist(o, p));
   return { c, f: Math.min(...ds), b: Math.max(...ds) };
 }
 
@@ -200,7 +201,8 @@ function renderMap() {
       <div id="mapChips"></div>
       <div id="mapFab"></div>
       <div id="mapBar"></div>
-      <div id="mapSheet"></div></div>`;
+      <div id="mapFabL"></div><div id="aimCard"></div>
+      <div id="mapSheet"></div><div id="mapTour"></div></div>`;
     initMap();
   }
   mapOverlays(); drawMap(); refreshElevation();
@@ -218,6 +220,7 @@ function initMap() {
     M.map.on('click', onMapClick);
     fitHole();
     drawMap();
+    mapOverlays();
     autoFind();
   }).catch(() => { $('#map').innerHTML = '<div class="empty" style="color:#ccc">The map needs internet. Shot marking still works.</div>'; });
 }
@@ -264,13 +267,14 @@ function drawMap() {
   if (M.setFlag) for (const gr of geo.greens) L.polygon(gr.poly, { color: '#ffd54a', weight: 2, fillOpacity: 0.15 }).addTo(M.layer);
   for (const z of geo.hazards || []) if (!g || dist(z.poly[0], g.c) < 600) L.polygon(z.poly, { color: z.t === 'water' ? '#4aa8ff' : '#f3dfa2', weight: 1, fillOpacity: 0.12, interactive: false }).addTo(M.layer);
   if (g && g.poly) L.polygon(g.poly, { color: '#fff', weight: 2, fillOpacity: 0.1 }).addTo(M.layer);
-  if (M.me && !M.setFlag) {
-    const toG = g ? dist(M.me, g.c) : 280;
+  const O = originPt();
+  if (O && !M.setFlag && !M.setPin && !M.setTee) {
+    const toG = g ? dist(O, g.c) : 280;
     const step = S.settings.unit === 'yd' ? 0.9144 : 1;
     for (const r of [50, 100, 150, 200, 250]) {
       const rm = r * step; if (rm > toG + 10) break;
-      L.circle(M.me, { radius: rm, color: '#fff', weight: 1, opacity: 0.45, fill: false, dashArray: '3 6', interactive: false }).addTo(M.layer);
-      L.circleMarker([M.me[0] + rm / 110540, M.me[1]], { radius: 0, opacity: 0, interactive: false })
+      L.circle(O, { radius: rm, color: '#fff', weight: 1, opacity: 0.45, fill: false, dashArray: '3 6', interactive: false }).addTo(M.layer);
+      L.circleMarker([O[0] + rm / 110540, O[1]], { radius: 0, opacity: 0, interactive: false })
         .bindTooltip(String(r), { permanent: true, direction: 'center', className: 'arclbl' }).addTo(M.layer);
     }
   }
@@ -281,21 +285,12 @@ function drawMap() {
     L.circleMarker(p, { radius: 7, color: '#0e5a3a', weight: 2, fillColor: '#fff', fillOpacity: 1 })
       .bindTooltip(String(i + 1), { permanent: true, direction: 'center', className: 'shotnum' }).addTo(M.layer);
   });
-  if (M.target) {
-    const line = [M.me, M.target, g && g.c].filter(Boolean);
-    L.polyline(line, { color: '#fff', weight: 2, dashArray: '6 6' }).addTo(M.layer);
-    L.circleMarker(M.target, { radius: 10, color: '#fff', weight: 3, fill: false }).addTo(M.layer);
-    const lbl = (a, b) => L.circleMarker([(a[0] + b[0]) / 2, (a[1] + b[1]) / 2], { radius: 0, opacity: 0, interactive: false })
-      .bindTooltip(fd(dist(a, b)) + S.settings.unit, { permanent: true, direction: 'center', className: 'biglbl' }).addTo(M.layer);
-    if (M.me) lbl(M.me, M.target);
-    if (g) lbl(M.target, g.c);
-  } else if (M.me && g) {
-    L.polyline([M.me, g.c], { color: '#fff', weight: 1.5, dashArray: '4 6', opacity: 0.7 }).addTo(M.layer);
-  }
+  if ((M.setTee || !usingGps()) && g && g.tee) L.circleMarker(g.tee, { radius: 7, color: '#fff', weight: 2, fillColor: '#16181d', fillOpacity: 1 }).bindTooltip('Tee', { permanent: true, direction: 'bottom', className: 'arclbl' }).addTo(M.layer);
   if (M.me) {
     if (M.acc && M.acc < 80) L.circle(M.me, { radius: M.acc, color: '#3d8bfd', weight: 1, fillOpacity: 0.12 }).addTo(M.layer);
     L.circleMarker(M.me, { radius: 8, color: '#fff', weight: 3, fillColor: '#3d8bfd', fillOpacity: 1 }).addTo(M.layer);
   }
+  drawAim();
 }
 function mapTop() { mapOverlays(); }
 function mapOverlays() {
@@ -316,14 +311,15 @@ function mapOverlays() {
 
   // right: distances + plays like
   let pl = null, rec = null, rel = null, rise = null;
-  if (g && M.me) {
-    pl = playsLike(M.me, g.c); rec = recommendClub(pl.d);
-    if (WX.wind) rel = ((WX.wind.from + 180 - bearing(M.me, g.c)) + 360) % 360;
-    if (WX.meEl != null && g.el != null) rise = g.el - WX.meEl;
+  const O = originPt(), pin = pinPt(h.n), hasPin = !!(r.pins && r.pins[h.n]);
+  if (g && O) {
+    pl = playsLike(O, pin); rec = aimClub();
+    if (WX.wind) rel = ((WX.wind.from + 180 - bearing(O, pin)) + 360) % 360;
+    if (WX.meEl != null && g.el != null && usingGps()) rise = g.el - WX.meEl;
   }
   $('#mapRight').innerHTML = `
     <div class="mp-k">Back</div><div class="mp-s">${d && d.b != null ? fd(d.b) : '––'}</div>
-    <div class="mp-big">${d ? fd(d.c) : '––'}</div>
+    <div class="mp-big">${d ? fd(d.c) : '––'}</div><div class="mp-k mp-pinlbl">${hasPin ? '⚑ to pin' : 'middle'}</div>
     <div class="mp-k">Front</div><div class="mp-s">${d && d.f != null ? fd(d.f) : '––'}</div>
     <hr>
     <div class="mp-k">Plays like</div><div class="mp-s">${pl ? fd(pl.d) : '––'}</div>
@@ -335,21 +331,21 @@ function mapOverlays() {
   const chips = [];
   if (M.setFlag) chips.push(`Tap the middle of the green for hole ${h.n}${courseGeo().greens.length ? ' (or a yellow outline)' : ''} <button class="mt-x" data-act="toggleFlag">✕</button>`);
   else if (!g) chips.push(`No green saved for hole ${h.n}. <button class="chipbtn" data-act="toggleFlag">Set green</button>`);
-  if (!M.me) chips.push('Finding your GPS position…');
-  else if (g && dist(M.me, g.c) > 1200) chips.push('⚠︎ You don\'t seem to be on this hole');
-  if (M.target && !M.setFlag) {
-    const t = M.me ? playsLike(M.me, M.target) : null, tr = t && recommendClub(t.d);
-    chips.push(`Target <b>${M.me ? fd(dist(M.me, M.target)) : '–'}</b>${g ? ` · <b>${fd(dist(M.target, g.c))}</b> to green` : ''}${tr ? ` · ${esc(CLUB_NAME[tr.k])}` : ''} <button class="mt-x" data-act="clearTarget">✕</button>`);
-  }
+  if (M.setPin) chips.push(`Tap where the pin is today on hole ${h.n}${hasPin ? ' <button class="chipbtn" data-act="clearPin">Use middle</button>' : ''} <button class="mt-x" data-act="setPinMode">✕</button>`);
+  if (M.setTee) chips.push(`Tap where you're teeing off on hole ${h.n} <button class="mt-x" data-act="setTeeMode">✕</button>`);
+  if (!M.me) chips.push(g && g.tee ? 'No GPS yet: distances are from the tee' : 'Finding your GPS position…');
+  else if (g && !usingGps()) chips.push(g.tee ? 'Not on this hole: distances are from the tee' : '⚠︎ You don\'t seem to be on this hole');
   const note = (courseGeo().notes || {})[h.n];
-  if (note && !M.target && !M.setFlag) chips.push('📝 ' + esc(note));
+  if (note && !M.setFlag && !M.setPin && !M.setTee) chips.push('📝 ' + esc(note));
   $('#mapChips').innerHTML = chips.map(c => `<div class="mchip">${c}</div>`).join('');
 
   // floating buttons
   $('#mapFab').innerHTML = `
     <button class="fab sm" data-act="recenter" aria-label="Centre on hole">⌖</button>
-    <button class="fab sm ${M.setFlag ? 'on' : ''}" data-act="toggleFlag" aria-label="Set green">⚑</button>
-    <button class="fab mark" data-act="markShot" ${M.me ? '' : 'disabled'}><b>📍 Mark</b><small>${esc(M.club)}</small></button>`;
+    ${S.settings.track !== false ? `<button class="fab mark" data-act="markShot" ${M.me ? '' : 'disabled'}><b>📍 Mark</b><small>${esc(M.club)}</small></button>` : ''}`;
+  $('#mapFabL').innerHTML = aimFabsLeft();
+  placeFabsLeft();
+  $('#aimCard').innerHTML = aimCardHtml();
 
   // bottom bar
   const A = aggregate([r]), hs = playedHoles(r), tp = A.strokes - A.par;
@@ -364,16 +360,20 @@ function mapOverlays() {
   $('#mapSheet').className = M.sheet ? 'open' : '';
   $('#mapSheet').innerHTML = M.sheet ? `<div class="sheet-bg" data-act="sheet" data-v=""></div><div class="sheet ${M.sheetShown === M.sheet ? 'noanim' : ''}">${sheetHtml()}</div>` : '';
   M.sheetShown = M.sheet;
+  paintTour();
+  if (M.tour == null && !S.settings.mapTour && M.map && !M.tourShown) { M.tourShown = true; setTimeout(() => { if (S.view === 'map' && M.tour == null) { M.tour = 0; paintTour(); } }, 900); }
 }
 function onMapClick(e) {
   const p = [e.latlng.lat, e.latlng.lng];
+  if (M.setPin) { const r = activeRound(); r.pins = r.pins || {}; r.pins[curHole().n] = p; M.setPin = false; M.aim = null; persist(); toast('Pin set'); render(); return; }
+  if (M.setTee) { const geo = courseGeo(), n = curHole().n; geo.holes[n] = Object.assign({}, geo.holes[n], { tee: p, manualTee: true }); M.setTee = false; M.aim = null; saveGeo(); toast('Tee set'); render(); return; }
   if (M.setFlag) {
     const geo = courseGeo(), n = curHole().n;
     const gr = geo.greens.find(x => inPoly(p, x.poly));
     geo.holes[n] = Object.assign({}, geo.holes[n] && { tee: geo.holes[n].tee }, gr ? { c: gr.c, poly: gr.poly } : { c: p }, { manual: true });
     M.setFlag = false; saveGeo(); toast(`Green saved for hole ${n}`);
   } else {
-    M.target = p;
+    M.aim = p;
   }
   render();
 }
@@ -465,11 +465,13 @@ function sheetHtml() {
       + `<button class="btn block sm" style="margin-top:12px" data-act="findGreens">${M.finding ? 'Searching…' : 'Reload map data'}</button>`;
   }
   if (M.sheet === 'insights') return insightsSheet();
+  if (M.sheet === 'aimclub') return aimClubSheet();
   if (M.sheet === 'menu') {
     return head(esc(r.course || 'Round')) + `<div class="stack">
       <button class="btn block" data-act="enterScore">Enter score for hole ${h.n}</button>
       <button class="btn block" data-act="openRound" data-v="${r.id}">Full scorecard</button>
       <button class="btn block" data-act="toggleFlag">Set green for hole ${h.n}</button>
+      <button class="btn block" data-act="tourStart">Map tour: how it works</button>
       <button class="btn block" data-act="findGreens">${M.finding ? 'Searching…' : 'Find greens from map data'}</button>
       ${holeGeo(h.n) ? `<button class="btn block danger" data-act="clearGreen">Remove saved green for hole ${h.n}</button>` : ''}
       <div class="grid2"><button class="btn" data-act="exitRound">Pause & exit</button><button class="btn danger" data-act="endRound" data-v="${r.id}">End round</button></div>
@@ -537,7 +539,7 @@ Object.assign(ACTIONS, {
   setScore(v) { const h = curHole(); clampHole(h); h.score = Number(v); clampHole(h); touch(h); },
   setPutts(v) { const h = curHole(); clampHole(h); h.putts = Number(v); clampHole(h); touch(h); },
   finishHoleMap() {
-    M.who = null;
+    M.who = null; M.aim = null; M.aimClub = null;
     const r = activeRound(), h = curHole(); clampHole(h); touch(h); M.sheet = null; M.target = null;
     if (S.hole >= r.holes.length - 1) { if (confirm('Finish the round?')) ACTIONS.finishRound(); return; }
     S.hole++; M.club = 'Dr'; setTimeout(fitHole, 0);
@@ -549,8 +551,8 @@ Object.assign(ACTIONS, {
   toggleFlag() { M.setFlag = !M.setFlag; M.target = null; M.sheet = null; },
   clearTarget() { M.target = null; },
   recenter() { fitHole(); },
-  mapPrev() { S.hole = Math.max(0, S.hole - 1); M.target = null; M.club = 'Dr'; setTimeout(fitHole, 0); },
-  mapNext() { const h = curHole(); if (!h.done && h.score != null) h.done = true; S.hole = Math.min(activeRound().holes.length - 1, S.hole + 1); M.target = null; M.club = 'Dr'; setTimeout(fitHole, 0); },
+  mapPrev() { S.hole = Math.max(0, S.hole - 1); M.target = null; M.aim = null; M.aimClub = null; M.setPin = M.setTee = false; M.club = 'Dr'; setTimeout(fitHole, 0); },
+  mapNext() { const h = curHole(); if (!h.done && h.score != null) h.done = true; S.hole = Math.min(activeRound().holes.length - 1, S.hole + 1); M.target = null; M.aim = null; M.aimClub = null; M.setPin = M.setTee = false; M.club = 'Dr'; setTimeout(fitHole, 0); },
   findGreens() { M.sheet = null; autoFind(true); },
   clearGreen() { delete courseGeo().holes[curHole().n]; saveGeo(); },
 });
