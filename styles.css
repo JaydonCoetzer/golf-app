@@ -858,3 +858,8 @@ body.sheet-open .tabs { display: none; }
 .rot-attr { position: absolute; z-index: 550; top: env(safe-area-inset-top); left: 0; font-size: 8.5px; color: #fff; background: rgba(0,0,0,.35); padding: 1px 6px; border-radius: 0 0 6px 0; pointer-events: none; }
 .nb-h > span { display: flex; flex-direction: column; }
 .nb-ago { font-size: 11.5px; font-weight: 600; color: var(--muted); }
+.map-steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.map-steps button { border: 1.5px solid var(--line); background: var(--surface-2); border-radius: 12px; padding: 12px 4px; font-weight: 750; font-size: 14.5px; color: var(--text); }
+.map-steps button.ok { border-color: var(--good); color: var(--good); background: color-mix(in srgb, var(--good) 10%, var(--surface)); }
+.map-steps button.on { border-color: var(--brand-2); background: var(--brand-2); color: #fff; }
+.pv-top { pointer-events: none; }

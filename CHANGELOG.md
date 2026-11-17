@@ -38,3 +38,5 @@ Small improvements made by the improvement loop, newest first.
 - Closest courses: always uses a fresh, accurate GPS fix (re-checked when you come back to the app, every 2 minutes on Home/Play, or tap ↻), includes your saved and hand-entered courses such as Devonvale, removes duplicate entries and shows when the location was last updated.
 - GPS map follows you: re-orients and re-frames as your GPS position settles or you walk (fixes the green showing at the bottom after a rough first GPS fix on iPhone). Panning or zooming by hand pauses following; ⌖, changing hole or finishing a hole turns it back on.
 - Aim labels no longer overlap: the distance-to-pin label sits further along the line and distance rings near the aim point hide their number.
+- Map this course (in Course preview): for any hole without map data, tap the tee, tap the green, and optionally trace the green's edge for front/back distances. Saved on the phone and used by the GPS map. "Send course map" shares the drawing so it can be added to the app for everyone.
+- Course preview keeps your zoom/position while you work, and the hole-info box no longer blocks taps.
