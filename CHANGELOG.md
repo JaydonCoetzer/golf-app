@@ -18,3 +18,7 @@ Small improvements made by the improvement loop, newest first.
 - Home order: profile, handicap, courses near me (search bar plus the 2 closest courses), then rounds.
 - Settings moved to a gear button on Home (top right); the fourth tab is now Practice (placeholder showing your current focus areas).
 - Readability: map panels always use dark text on white with blue numbers; header and tab bar follow dark mode; stronger label colours. Driving ranges and academies no longer show as nearby courses.
+- Golf bag: edit which clubs are in the bag (full catalogue of woods, hybrids, irons, wedges), add each club's model.
+- Club pages: True Distance (from better recent strikes, outliers excluded) vs manual distance with per-club and all-clubs toggles, strokes gained per shot, accuracy (on target, left/right, long/short, fairways off the tee, mishits) and a dispersion oval fitted to your shots (typical oval for your handicap until 8 shots).
+- Right/left-handed setting (Settings → Player, or Golf bag) sets the slant of the dispersion oval.
+- Club picker on the map and in Replay only shows clubs in your bag.

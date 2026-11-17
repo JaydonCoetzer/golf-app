@@ -87,7 +87,7 @@ function replayHtml(r) {
   <div class="card">
     <h2>Shots on hole ${h.n} <button class="btn sm ${RP.edit ? 'primary' : ''}" data-act="rpEdit">${RP.edit ? 'Done' : 'Edit'}</button></h2>
     ${RP.edit ? `<div class="sub" style="margin-bottom:8px">Pick the club, then tap the map where you hit each shot from, in order.</div>
-      <div class="clubs">${CLUBS.map(([k]) => `<button data-act="rpClub" data-v="${k}" class="${RP.club === k ? 'on' : ''}">${k}</button>`).join('')}</div>
+      <div class="clubs">${bagList().map(([k]) => `<button data-act="rpClub" data-v="${k}" class="${RP.club === k ? 'on' : ''}">${k}</button>`).join('')}</div>
       ${shots.length ? `<div class="field-title" style="margin-top:10px"><span>Shot ${shots.length}: penalty?</span></div>
       <div class="chips">${PENS.map(([k, l]) => `<button data-act="rpPen" data-v="${k}" class="${shots[shots.length - 1].pen === k ? 'on' : ''}">${l}</button>`).join('')}</div>` : ''}` : ''}
     ${rows || `<div class="sub">${RP.edit ? 'No shots yet. Tap the map to add the first one (your tee shot).' : 'No shots were tracked on this hole. During a round, tap 📍 Mark before each shot. Or tap Edit to place them now.'}</div>`}

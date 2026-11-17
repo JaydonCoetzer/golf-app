@@ -36,7 +36,7 @@ function sgHole(r, h) {
   const dTo = s => dist([s.lat, s.lng], g.c);
   const putt1 = h.putts ? (h.putt1 != null ? PUTT1_M[h.putt1] : firstPt ? Math.max(0.5, Math.min(25, dTo(firstPt))) : null) : 0;
   if (h.putts && putt1 == null) return null;
-  const out = { drive: 0, app: 0, short: 0, putt: 0 };
+  const out = { drive: 0, app: 0, short: 0, putt: 0, shots: [] };
   off.forEach((s, i) => {
     const lie = i === 0 ? 'tee' : s.lie && s.lie !== 'green' && s.lie !== 'tee' ? s.lie : (i === 1 && h.fw && h.fw !== 'hit' ? 'rough' : 'fairway');
     const d0 = dTo(s), nx = off[i + 1];
@@ -45,9 +45,9 @@ function sgHole(r, h) {
     else e1 = h.putts ? sgExpected(putt1, 'green') : 0;
     const v = sgExpected(d0, lie) - e1 - 1 - (s.pen ? 1 : 0);
     const cat = i === 0 && h.par > 3 ? 'drive' : d0 > zoneMetres() ? 'app' : 'short';
-    out[cat] += v;
+    out[cat] += v; out.shots.push({ club: s.club, v });
   });
-  if (h.putts) out.putt = sgExpected(putt1, 'green') - h.putts;
+  if (h.putts) { out.putt = sgExpected(putt1, 'green') - h.putts; out.shots.push({ club: 'Pt', v: out.putt / h.putts }); }
   return out;
 }
 function sgTotals(rounds) {

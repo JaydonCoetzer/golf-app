@@ -477,7 +477,7 @@ function sheetHtml() {
   }
   const last = shots.length ? shots.length - 1 : null;
   return head(`Shots · hole ${h.n}`) + `
-    <div class="clubs">${CLUBS.map(([k]) => `<button data-act="pickClub" data-v="${k}" class="${M.club === k ? 'on' : ''}">${k}</button>`).join('')}</div>
+    <div class="clubs">${bagList().map(([k]) => `<button data-act="pickClub" data-v="${k}" class="${M.club === k ? 'on' : ''}">${k}</button>`).join('')}</div>
     <button class="btn primary block" style="margin-top:10px" data-act="markShot" ${M.me ? '' : 'disabled'}>📍 Mark ball here · ${esc(CLUB_NAME[M.club])}</button>
     <div class="sub" style="margin-top:6px">Stand at your ball and tap before each shot. On the green, mark with Putter so your approach is measured.</div>
     ${last != null ? `<div class="field-title" style="margin-top:12px"><span>How was shot ${last + 1}?</span></div>

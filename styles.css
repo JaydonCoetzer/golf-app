@@ -698,3 +698,36 @@ input[type=text], input[type=date], input[type=number], select, textarea { borde
 :root[data-theme="dark"] .tab { color: #c9d3cd; }
 :root[data-theme="dark"] .tab.on { background: #2a3530; color: var(--brand-2); }
 :root[data-theme="dark"] .stabs button.on, :root[data-theme="dark"] .dtabs button.on { background: var(--brand); color: #04140c; }
+
+/* golf bag + club pages */
+.clubrow2 { display: flex; align-items: center; gap: 10px; width: 100%; padding: 10px 0; border: 0; border-bottom: 1px solid var(--line); background: none; text-align: left; color: var(--text); }
+.clubrow2:last-child { border-bottom: 0; }
+.cb-badge { flex: 0 0 40px; height: 40px; border-radius: 12px; background: var(--surface-2); display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 14px; color: var(--brand-2); }
+.cb-n { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.cb-n b { font-size: 15.5px; } .cb-n small { color: var(--muted); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cb-d { display: flex; flex-direction: column; align-items: flex-end; min-width: 52px; }
+.cb-d b { font-size: 17px; } .cb-d small { color: var(--muted); font-size: 11px; }
+.clubrow2 .cr-bar { flex: 0 0 34%; }
+.tgl { flex: 0 0 auto; width: 54px; height: 32px; border-radius: 16px; border: 0; background: #d7d9de; position: relative; transition: background .15s; }
+.tgl i { position: absolute; top: 3px; left: 3px; width: 26px; height: 26px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.25); transition: left .15s; }
+.tgl.on { background: var(--brand-2); } .tgl.on i { left: 25px; }
+.dd { display: grid; grid-template-columns: 1fr 1fr; margin: 4px 0 10px; }
+.dd > div + div { border-left: 1px solid var(--line); padding-left: 14px; }
+.dd small { display: block; color: var(--muted); font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
+.dd b { font-size: 28px; font-weight: 800; }
+.dd input { width: 100%; font-size: 22px; padding: 6px 10px; margin-top: 4px; }
+.btn.sm.dark { background: #2a2d35; color: #fff; }
+.warnt { color: #d9480f; font-size: 13.5px; font-weight: 600; }
+.sgv { font-size: 22px; font-weight: 800; } .sgv.neg { color: var(--bad); } .sgv.pos { color: var(--good); }
+.cl-model { border: 0; background: var(--surface-2); border-radius: 10px; padding: 9px 12px; font-size: 15px; width: 100%; margin-top: 4px; }
+.card .row.between > div { flex: 1; }
+svg.disp { width: 100%; max-width: 340px; display: block; margin: 8px auto; }
+.disp .ax { stroke: var(--line); stroke-dasharray: 4 5; stroke-width: 1.5; }
+.disp .rg { fill: none; stroke: #cfd3da; stroke-width: 1.5; }
+.disp .rl { fill: var(--muted); font-size: 10px; }
+.disp .el { fill: rgba(45,92,192,.16); stroke: #2d5cc0; stroke-width: 3; }
+.disp .el.typ { fill: rgba(45,92,192,.08); stroke-dasharray: 7 5; }
+.disp .pt { fill: #2d5cc0; stroke: #fff; stroke-width: 1.5; }
+.disp .pt.bad { fill: #f5a524; } .disp .pt.pen { fill: #e5484d; }
+.disp .tg { fill: #e5484d; }
+.disp .cap { fill: var(--muted); font-size: 11px; font-weight: 700; }

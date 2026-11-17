@@ -156,7 +156,7 @@ function statClubs() {
     ${rows.map(r => `<button class="clubrow" data-act="clubSel" data-v="${r.k}"><span><b>${esc(r.n)}</b><small>${r.cnt} shot${r.cnt === 1 ? '' : 's'}</small></span>
       <div class="cr-bar">${r.lo != null ? `<i style="left:${(r.lo / max) * 100}%;width:${Math.max(3, ((r.hi - r.lo) / max) * 100)}%"></i>` : r.avg ? `<i class="typed" style="left:${(r.avg / max) * 100 - 1.5}%;width:3%"></i>` : ''}</div><em>${r.avg ? fd(r.avg) : '–'}</em><span class="hp-chev">›</span></button>`).join('')}
     <div class="sub" style="margin-top:8px">Bars show your shortest to longest normal shot. Clubs with no tracked shots use the distances typed in your Golf bag.</div>
-    <button class="btn block sm" style="margin-top:10px" data-act="goBag">Edit typed distances in Golf bag ›</button></div>`;
+    </div>`;
 }
 
 function viewStats() {

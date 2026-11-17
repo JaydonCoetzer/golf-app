@@ -187,7 +187,7 @@ function setTitle(t, right = '') { $('#title').textContent = t; $('#topRight').i
 function render() {
   if (S.view === 'rounds' && !S.detailId && !S.courseView) { S.view = 'stats'; S.statTab = 'rounds'; }
   if (S.pendingReload && S.view !== 'map') { S.pendingReload = false; persist(); location.reload(); return; }
-  document.querySelectorAll('.tab').forEach(b => b.classList.toggle('on', b.dataset.view === (S.view === 'map' ? 'play' : S.view === 'bag' || S.view === 'preview' || S.view === 'profile' || S.view === 'settings' ? 'home' : S.view === 'rounds' ? 'stats' : S.view)));
+  document.querySelectorAll('.tab').forEach(b => b.classList.toggle('on', b.dataset.view === (S.view === 'map' ? 'play' : S.view === 'bag' || S.view === 'preview' || S.view === 'profile' || S.view === 'settings' || S.view === 'bag' ? 'home' : S.view === 'club' ? (S.clubFrom === 'stats' ? 'stats' : 'home') : S.view === 'rounds' ? 'stats' : S.view)));
   document.body.classList.toggle('mapmode', S.view === 'map');
   if (S.view !== 'map' && typeof stopMap === 'function') stopMap();
   if (S.view !== 'preview' && typeof stopPreview === 'function') stopPreview();
@@ -199,6 +199,7 @@ function render() {
   else if (S.view === 'rounds') m.innerHTML = S.courseView ? viewCourse() : S.detailId ? viewRoundDetail() : viewRounds();
   else if (S.view === 'stats') m.innerHTML = viewStats();
   else if (S.view === 'bag') m.innerHTML = viewBag();
+  else if (S.view === 'club') m.innerHTML = viewClub();
   else if (S.view === 'practice') m.innerHTML = viewPractice();
   else if (S.view === 'profile') m.innerHTML = viewProfile();
   else if (S.view === 'preview') { m.innerHTML = viewPreview(); pvDraw(); }
@@ -684,9 +685,10 @@ function viewSettings() {
     <h2>Appearance</h2>
     ${seg('theme', [['auto', 'Auto'], ['light', 'Light'], ['dark', 'Dark']], s.theme)}
   </div>
+  <div class="card"><h2>Player</h2><div class="field-title"><span>I play</span><span class="muted">sets the slant of your dispersion oval</span></div>${seg('hand', [['R', 'Right-handed'], ['L', 'Left-handed']], S.settings.hand || 'R')}</div>
   ${gcaCard()}
   <button class="btn block" style="margin-bottom:12px" data-act="goProfile">👤 Player profile & headshot ›</button>
-  <button class="btn block" style="margin-bottom:12px" data-act="goBag">🏌️ Golf bag: club distances ›</button>
+  <button class="btn block" style="margin-bottom:12px" data-act="goBag">🏌️ Golf bag: clubs & distances ›</button>
   <div class="card">
     <h2>Saved courses</h2>
     ${S.courses.length ? S.courses.map((c, i) => `<div class="list-item"><div><b>${esc(c.name)}</b><div class="sub">${c.pars.length} holes · par ${sum(c.pars)}${c.tees ? ' · ' + esc(c.tees) : ''}</div></div>
