@@ -99,7 +99,7 @@ async function loadNearby(force) {
     const me = await here();
     const fresh = CD.nearby && Date.now() - CD.nearby.at < 864e5 && dist(me, CD.nearby.me) < 5000;
     const db = await loadDB();
-    if (db.length) { CD.nearby = { at: Date.now(), me, list: db.map(c => ({ name: c.name, id: c.id, center: c.c, h: c.h })) }; }
+    if (db.length) { CD.nearby = { at: Date.now(), me, list: db.filter(c => c.h >= 9 || !/driving range|practice|academy|mini.?golf|putt/i.test(c.name)).map(c => ({ name: c.name, id: c.id, center: c.c, h: c.h })) }; }
     else if (force || !fresh) {
       const j = await overpass(`[out:json][timeout:25];nwr["leisure"="golf_course"]["name"](around:40000,${me[0]},${me[1]});out tags center;`);
       const seen = new Set(), list = [];

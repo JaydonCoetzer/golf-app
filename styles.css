@@ -661,3 +661,40 @@ input[type=text], input[type=date], input[type=number], select, textarea { borde
 .h-toprow .hp-card { flex: 1; min-width: 0; }
 .h-gear { flex: 0 0 52px; border: 0; border-radius: 16px; background: var(--surface); box-shadow: var(--shadow); color: var(--text); display: flex; align-items: center; justify-content: center; }
 .h-gear svg { width: 24px; height: 24px; }
+
+/* map overlays: fixed high-contrast colours, whatever the phone's light/dark setting */
+.mp, .mchip, .fab:not(.mark):not(.on), .mb-menu, .mb-arrow, .pv-top, .pv-target, .pv-nav { --ov-text: #16181d; --ov-muted: #4f5664; color: var(--ov-text); background: rgba(255,255,255,.96); }
+.mp .mp-k, .pv-top small { color: var(--ov-muted); opacity: 1; font-weight: 700; }
+.mp .mp-v, .mp .mp-s, .pv-top b { color: #16181d; }
+.mp .mp-big { color: #1f4fbf; }
+.mp hr { border-top-color: #e3e5ea; }
+.mp .warrow { color: #1f4fbf; }
+.mp-btn { background: #2d5cc0; color: #fff; }
+.mb-score, .fab.mark { background: #2d5cc0; color: #fff; }
+.mb-tp { background: rgba(255,255,255,.22); color: #fff; }
+.mchip .mt-x { background: #eef0f3; color: #16181d; }
+.chipbtn { background: #2d5cc0; color: #fff; }
+.mb-arrow:disabled { color: #9aa0ab; }
+.leaflet-tooltip.arclbl { color: #fff; font-size: 12px; text-shadow: 0 0 3px #000, 0 0 6px #000; }
+
+/* stronger headings and labels in both themes */
+.card h2, .h-title, .pf-name { color: var(--text); }
+.card h3, .field-title, label.f, .tile .k { color: color-mix(in srgb, var(--brand-2) 70%, var(--text)); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --muted: #a9b4ad; } }
+:root[data-theme="dark"] { --muted: #a9b4ad; }
+
+/* dark mode: header and tab bar follow the theme */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .top { background: rgba(16,20,18,.9); border-bottom-color: #26302b; }
+  :root:not([data-theme="light"]) .top h1 { color: #eef3f0; }
+  :root:not([data-theme="light"]) .tabs { background: rgba(28,34,31,.92); border-color: #2c3631; }
+  :root:not([data-theme="light"]) .tab { color: #c9d3cd; }
+  :root:not([data-theme="light"]) .tab.on { background: #2a3530; color: var(--brand-2); }
+  :root:not([data-theme="light"]) .stabs button.on, :root:not([data-theme="light"]) .dtabs button.on { background: var(--brand); color: #04140c; }
+}
+:root[data-theme="dark"] .top { background: rgba(16,20,18,.9); border-bottom-color: #26302b; }
+:root[data-theme="dark"] .top h1 { color: #eef3f0; }
+:root[data-theme="dark"] .tabs { background: rgba(28,34,31,.92); border-color: #2c3631; }
+:root[data-theme="dark"] .tab { color: #c9d3cd; }
+:root[data-theme="dark"] .tab.on { background: #2a3530; color: var(--brand-2); }
+:root[data-theme="dark"] .stabs button.on, :root[data-theme="dark"] .dtabs button.on { background: var(--brand); color: #04140c; }

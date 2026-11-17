@@ -17,3 +17,4 @@ Small improvements made by the improvement loop, newest first.
 - Devonvale Golf & Wine Estate added with its scorecard; course database builder now also picks up courses mapped as a single point.
 - Home order: profile, handicap, courses near me (search bar plus the 2 closest courses), then rounds.
 - Settings moved to a gear button on Home (top right); the fourth tab is now Practice (placeholder showing your current focus areas).
+- Readability: map panels always use dark text on white with blue numbers; header and tab bar follow dark mode; stronger label colours. Driving ranges and academies no longer show as nearby courses.
