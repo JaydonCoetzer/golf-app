@@ -29,3 +29,6 @@ Small improvements made by the improvement loop, newest first.
 - New course page / round setup: satellite photo hero with weather, holes/par/length/rating-slope for the chosen tee, Course preview and Play buttons, fold-out scorecard, and tap-to-pick rows for tee box (Men/Women), round (18 / front 9 / back 9), date, game format, handicap stepper, and players. Option to leave a round out of the handicap.
 - Play tab without a course: search, nearby courses and your saved courses.
 - Devonvale tee data (Yellow, White, Blue, Red with rating and slope).
+- Club distance estimates: set your driver and 7-iron (Quick setup in Golf bag) and every other club is estimated (irons ~7.5% of the 7-iron apart, woods from the driver, hybrids alongside the long irons). Your own manual or tracked distances always win.
+- Wedge part swings (80/60/40%) feed club suggestions, e.g. "Pitching wedge 60%".
+- Import club distances from a link (open it, or paste it in Golf bag → Import distances).

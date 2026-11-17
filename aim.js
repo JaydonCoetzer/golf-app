@@ -42,7 +42,7 @@ function autoAim() {
 }
 function aimPt() { return M.aim || autoAim(); }
 function aimClub() {
-  if (M.aimClub) { const b = bagDistances().find(c => c.k === M.aimClub); return b || { k: M.aimClub, d: clubDist(M.aimClub).d }; }
+  if (M.aimClub) { const [mk, mp] = M.aimClub.split('@'); const b = bagDistances().find(c => c.k === mk && (c.pct || '') == (mp || '')); return b || { k: mk, d: clubDist(mk).d }; }
   const o = originPt(), a = aimPt(); if (!o || !a) return null;
   return recommendClub(playsLike(o, a).d);
 }
@@ -97,7 +97,7 @@ function optimiseAim() {
   }
   let best = null, bs = -1e9;
   for (const c of cands) { const sc = scoreAim(o, c, E, pin, g, hz, layup); if (sc > bs) { bs = sc; best = c; } }
-  if (best) { M.aim = best; toast(`Aim set for ${CLUB_NAME[club.k] || club.k}${hz.length ? ', away from trouble' : ''}`); }
+  if (best) { M.aim = best; toast(`Aim set for ${clubLabel(club)}${hz.length ? ', away from trouble' : ''}`); }
 }
 
 /* ---------- drawing ---------- */
@@ -110,7 +110,7 @@ function drawAim() {
   if (!o || !a) { if (AIM.marker) { AIM.marker.remove(); AIM.marker = null; } return; }
   const club = aimClub();
   if (club) {
-    const E = clubEllipse(club.k);
+    const E = clubEllipse(club.k), sc = club.pct ? club.pct / 100 : 1; if (sc < 1) { E.rx *= sc; E.ry *= sc; }
     L.polygon(ellipseLatLngs(o, a, E), { color: '#4f8dff', weight: 3, fillColor: '#4f8dff', fillOpacity: 0.16, interactive: false }).addTo(AIM.layer);
   }
   L.polyline([o, a], { color: '#fff', weight: 2.5, interactive: false }).addTo(AIM.layer);
@@ -137,15 +137,15 @@ function aimCardHtml() {
   const club = aimClub(), pl = playsLike(o, a), cd = club ? clubDist(club.k).d : null;
   const gap = club && cd ? cd - pl.d : null;
   return `<button class="ac-aim" data-act="aimOpt" aria-label="Optimal aim">⌖ AIM</button>
-    <button class="ac-club" data-act="sheet" data-v="aimclub">${club ? `<b>${esc(CLUB_NAME[club.k] || club.k)}</b>${gap != null && Math.abs(gap) >= 3 ? `<small class="${gap > 0 ? 'pos' : 'neg'}">${gap > 0 ? '+' : ''}${fd(gap)}</small>` : ''}` : '<b>Pick club</b>'}${M.aimClub ? '<i>manual</i>' : '<i>auto</i>'} ▾</button>
+    <button class="ac-club" data-act="sheet" data-v="aimclub">${club ? `<b>${esc(clubLabel(club))}</b>${gap != null && Math.abs(gap) >= 3 ? `<small class="${gap > 0 ? 'pos' : 'neg'}">${gap > 0 ? '+' : ''}${fd(gap)}</small>` : ''}` : '<b>Pick club</b>'}${M.aimClub ? '<i>manual</i>' : '<i>auto</i>'} ▾</button>
     ${M.aim || M.aimClub ? '<button class="ac-reset" data-act="aimReset" aria-label="Reset aim">↺</button>' : ''}`;
 }
 function aimClubSheet() {
   const o = originPt(), a = aimPt(), need = o && a ? playsLike(o, a).d : null, auto = need ? recommendClub(need) : null, u = S.settings.unit;
   return `<div class="sheet-h"><b>Club for this shot</b><button class="mt-x dark" data-act="sheet" data-v="">✕</button></div>
-    ${need ? `<div class="sub" style="margin-bottom:8px">Aim point plays like <b>${fd(need)} ${u}</b>.${auto ? ` Suggested: <b>${esc(CLUB_NAME[auto.k])}</b>.` : ''}</div>` : ''}
+    ${need ? `<div class="sub" style="margin-bottom:8px">Aim point plays like <b>${fd(need)} ${u}</b>.${auto ? ` Suggested: <b>${esc(clubLabel(auto))}</b>.` : ''}</div>` : ''}
     <button class="clubrow2" data-act="aimClub" data-v=""><span class="cb-badge">A</span><span class="cb-n"><b>Automatic</b><small>best club for the distance</small></span>${!M.aimClub ? '<span class="cb-d"><b>✓</b></span>' : ''}</button>
-    ${bagList().filter(([k]) => k !== 'Pt').map(([k, n]) => { const d = clubDist(k).d; return `<button class="clubrow2" data-act="aimClub" data-v="${k}"><span class="cb-badge">${esc(k)}</span><span class="cb-n"><b>${esc(n)}</b><small>${d ? fd(d) + ' ' + u : 'no distance yet'}${need && d ? ` · ${d - need >= 0 ? '+' : ''}${fd(d - need)}` : ''}</small></span>${M.aimClub === k ? '<span class="cb-d"><b>✓</b></span>' : auto && auto.k === k ? '<span class="cb-d"><small>suggested</small></span>' : ''}</button>`; }).join('')}`;
+    ${bagDistances().slice().reverse().map(c => { const id = c.pct ? `${c.k}@${c.pct}` : c.k, d = c.d, isAuto = auto && auto.k === c.k && (auto.pct || 0) === (c.pct || 0); return `<button class="clubrow2" data-act="aimClub" data-v="${id}"><span class="cb-badge">${esc(c.k)}</span><span class="cb-n"><b>${esc(clubLabel(c))}</b><small>${fd(d)} ${u}${clubDist(c.k).src === 'est' && !c.pct ? ' (est.)' : ''}${need ? ` · ${d - need >= 0 ? '+' : ''}${fd(d - need)}` : ''}</small></span>${M.aimClub === id ? '<span class="cb-d"><b>✓</b></span>' : isAuto ? '<span class="cb-d"><small>suggested</small></span>' : ''}</button>`; }).join('')}`;
 }
 function placeFabsLeft() {
   const fl = $('#mapFabL'), ml = $('#mapLeft'); if (!fl || !ml) return;
@@ -190,7 +190,7 @@ Object.assign(ACTIONS, {
   aimClub(v) {
     M.aimClub = v || null; M.sheet = null;
     const o = originPt(), pin = pinPt(curHole().n);
-    if (v && o && pin) { const d = clubDist(v).d; if (d && d < playsLike(o, pin).d * 0.96) M.aim = alongLine(o, M.aim || pin, d); else if (d) M.aim = null; }
+    if (v && o && pin) { const [vk, vp] = v.split('@'), d = vp ? partialDist(vk, Number(vp)) : clubDist(vk).d; if (d && d < playsLike(o, pin).d * 0.96) M.aim = alongLine(o, M.aim || pin, d); else if (d) M.aim = null; }
   },
   setPinMode() { M.setPin = !M.setPin; M.setTee = false; M.setFlag = false; },
   setTeeMode() { M.setTee = !M.setTee; M.setPin = false; M.setFlag = false; },

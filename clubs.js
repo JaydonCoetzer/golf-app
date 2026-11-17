@@ -37,17 +37,47 @@ function manualDist(k) {
   return v > 0 ? (S.settings.unit === 'yd' ? v * 0.9144 : v) : null;
 }
 function usesTrue(k) { return S.settings.useTrue !== false && !(S.settings.manualOnly || {})[k]; }
+/* Estimates from your driver and 7-iron when a club has no distance yet.
+   Irons are ~7.5% of the 7-iron apart (≈10 m at 140 m). Woods scale from the driver; hybrids sit with the long irons. */
+const IRON_STEP = { '2i': 5, '3i': 4, '4i': 3, '5i': 2, '6i': 1, '7i': 0, '8i': -1, '9i': -2, PW: -3, GW: -4, SW: -5, LW: -6 };
+const HYB_AS = { '2H': 6, '3H': 5, '4H': 4, '5H': 3, Hy: 4 }; // a 5-hybrid carries about like a 4-iron
+const WOOD_PCT = { '3W': 0.87, '5W': 0.81, '7W': 0.77 };
+function knownDist(k) { const t = trueDist(k), m = manualDist(k); return (t.d && usesTrue(k) ? t.d : m) || t.d || null; }
+function estDist(k) {
+  // anchor: 7-iron, else the nearest iron with a distance
+  let a7 = knownDist('7i');
+  if (!a7) for (const [ik, st] of Object.entries(IRON_STEP)) { const d = knownDist(ik); if (d) { a7 = d / (1 + 0.075 * st); break; } }
+  const dr = knownDist('Dr') || (a7 ? a7 * 1.55 : null);
+  if (k === 'Dr') return a7 ? a7 * 1.55 : null;
+  if (WOOD_PCT[k]) return dr ? dr * WOOD_PCT[k] : null;
+  if (!a7) return null;
+  const st = IRON_STEP[k] ?? HYB_AS[k];
+  if (st == null) return null;
+  const d = a7 * (1 + 0.075 * st);
+  return k === 'LW' ? Math.max(40, d) : d;
+}
 function clubDist(k) {
   const t = trueDist(k), m = manualDist(k);
   if (t.d && usesTrue(k)) return { d: t.d, src: 'true' };
   if (m) return { d: m, src: 'manual' };
   if (t.d) return { d: t.d, src: 'true' };
+  if (k !== 'Pt') { const e = estDist(k); if (e) return { d: e, src: 'est' }; }
   return { d: null, src: null };
+}
+/* Part swings for wedges: settings.partial = { PW: { 80: 80, 60: 65, 40: 55 }, ... } (in your unit) */
+const PARTIALS = [80, 60, 40];
+const WEDGES = ['PW', 'GW', 'SW', 'LW'];
+function partialDist(k, pc) {
+  const v = Number(((S.settings.partial || {})[k] || {})[pc]);
+  return v > 0 ? (S.settings.unit === 'yd' ? v * 0.9144 : v) : null;
 }
 // replaces the earlier version: the caddie / club suggestions use these
 function bagDistances() {
-  return bagList().filter(([k]) => k !== 'Pt').map(([k]) => ({ k, d: clubDist(k).d })).filter(c => c.d).sort((a, b) => a.d - b.d);
+  const out = bagList().filter(([k]) => k !== 'Pt').map(([k]) => ({ k, d: clubDist(k).d })).filter(c => c.d);
+  for (const k of WEDGES) if (bagKeys().includes(k)) for (const pc of PARTIALS) { const d = partialDist(k, pc); if (d) out.push({ k, d, pct: pc }); }
+  return out.sort((a, b) => a.d - b.d);
 }
+const clubLabel = c => (c ? (CLUB_NAME[c.k] || c.k) + (c.pct ? ` ${c.pct}%` : '') : '');
 
 /* ---------- dispersion ---------- */
 function dispShots(k) {
@@ -131,7 +161,7 @@ function clubRow(k, n, extra = '') {
   const cd = clubDist(k), model = (S.settings.clubModels || {})[k];
   return `<button class="clubrow2" data-act="openClub" data-v="${k}"><span class="cb-badge">${esc(k)}</span>
     <span class="cb-n"><b>${esc(n)}</b><small>${model ? esc(model) : clubShots(k).length + ' tracked shots'}</small></span>
-    ${extra}<span class="cb-d">${cd.d ? `<b>${fd(cd.d)}</b><small>${cd.src === 'true' ? 'True' : 'Manual'}</small>` : '<b>–</b><small>set distance</small>'}</span><span class="hp-chev">›</span></button>`;
+    ${extra}<span class="cb-d">${cd.d ? `<b>${fd(cd.d)}</b><small>${cd.src === 'true' ? 'True' : cd.src === 'est' ? 'Estimate' : 'Manual'}</small>` : '<b>–</b><small>set distance</small>'}</span><span class="hp-chev">›</span></button>`;
 }
 function viewBag() {
   setTitle('Golf bag', `<button class="tbtn" data-act="${S.bagEdit ? 'bagEdit' : 'goHome'}">${S.bagEdit ? 'Done' : '‹ Home'}</button>`);
@@ -143,17 +173,48 @@ function viewBag() {
         `<h3>${t}</h3><div class="chips">${CLUBS.filter(([k]) => re.test(k)).map(([k, n]) => `<button data-act="toggleClub" data-v="${k}" class="${inBag.has(k) ? 'on' : ''}">${inBag.has(k) ? '✓ ' : '+ '}${esc(n)}</button>`).join('')}</div>`).join('')}
     </div>`;
   }
-  return `<div class="card"><h2>In my bag <button class="btn sm" data-act="bagEdit">Edit bag</button></h2>
+  const known = bagList().filter(([k]) => k !== 'Pt' && (manualDist(k) || trueDist(k).d)).length;
+  return `${known < 3 ? quickSetupCard() : ''}<div class="card"><h2>In my bag <button class="btn sm" data-act="bagEdit">Edit bag</button></h2>
     ${bagList().map(([k, n]) => clubRow(k, n)).join('')}</div>
+    ${partialCard()}
     <div class="card stack"><h2>Distances</h2>
       <div class="row between"><span><b>Use True Distance for all clubs</b><div class="sub">From your better recent shots once a club has ${TRUE_MIN}+. Otherwise your manual distance is used.</div></span>${toggle('trueAll', S.settings.useTrue !== false)}</div>
-      <div><div class="field-title"><span>I play</span></div>${seg('hand', [['R', 'Right-handed'], ['L', 'Left-handed']], S.settings.hand || 'R')}</div></div>`;
+      <div><div class="field-title"><span>I play</span></div>${seg('hand', [['R', 'Right-handed'], ['L', 'Left-handed']], S.settings.hand || 'R')}</div>
+      <details class="help"><summary><b>Import distances</b> <span class="sub">paste a distances link</span></summary>
+        <div class="np-row" style="grid-template-columns:1fr auto"><input id="impLink" type="text" placeholder="Paste link here" autocomplete="off" autocapitalize="off" spellcheck="false"><button class="btn sm primary" data-act="impLink">Load</button></div></details></div>`;
 }
 function accRadius(k) {
   const v = Number((S.settings.accR || {})[k]);
   if (v > 0) return S.settings.unit === 'yd' ? v * 0.9144 : v;
   const d = clubDist(k).d || 150; return d >= 200 ? 25 : d >= 150 ? 20 : d >= 100 ? 15 : 10;
 }
+function quickSetupCard() {
+  const u = S.settings.unit, q = S.quick = S.quick || { Dr: Math.round(toUnit(knownDist('Dr') || 210)), '7i': Math.round(toUnit(knownDist('7i') || 140)) };
+  return `<div class="card qs-card"><h2>Quick setup</h2>
+    <div class="sub" style="margin-bottom:10px">Set your usual driver and 7-iron. The app estimates the rest (about ${u === 'yd' ? '11 yd' : '10 m'} between irons) and learns your real distances from tracked shots.</div>
+    <div class="grid2"><div><div class="field-title"><span>Driver</span></div>${stepper2('qsStep', q.Dr + ' ' + u, '± 5 per tap').replace(/data-act="qsStep" data-v="(-?1)"/g, 'data-act="qsStep" data-v="Dr:$1"')}</div>
+      <div><div class="field-title"><span>7-iron</span></div>${stepper2('qsStep', q['7i'] + ' ' + u, '').replace(/data-act="qsStep" data-v="(-?1)"/g, 'data-act="qsStep" data-v="7i:$1"')}</div></div>
+    <button class="btn primary block" style="margin-top:10px" data-act="qsSave">Save & estimate my bag</button></div>`;
+}
+function partialCard() {
+  const ws = WEDGES.filter(k => bagKeys().includes(k)); if (!ws.length) return '';
+  const u = S.settings.unit, P = S.settings.partial || {};
+  return `<div class="card"><h2>Wedge part swings <span class="sub">${u}</span></h2>
+    <div class="sub" style="margin-bottom:8px">Club suggestions use these for shorter shots, e.g. "PW 60%".</div>
+    <table class="tbl pt-tbl"><thead><tr><th>Club</th><th>Full</th>${PARTIALS.map(p => `<th>${p}%</th>`).join('')}</tr></thead><tbody>
+    ${ws.map(k => `<tr><td><b>${k}</b></td><td>${clubDist(k).d ? fd(clubDist(k).d) : '–'}</td>${PARTIALS.map(pc => `<td><input type="number" inputmode="numeric" data-bind="partial" data-v="${k}:${pc}" value="${esc((P[k] || {})[pc] ?? '')}" placeholder="–"></td>`).join('')}</tr>`).join('')}
+    </tbody></table></div>`;
+}
+/* One-tap import: ?bag=Dr:225,7i:140&partial=PW80:80,PW60:65&keys=Dr,3W,...  (values in your unit) */
+function applyImport(str) {
+  const q = new URLSearchParams((str.split('?')[1] || str).trim()); if (!q.get('bag') && !q.get('partial') && !q.get('keys')) return false;
+  S.settings.bag = S.settings.bag || {};
+  for (const kv of (q.get('bag') || '').split(',')) { const [k, v] = kv.split(':'); if (CLUB_NAME[k] && Number(v) > 0) S.settings.bag[k] = Number(v); }
+  for (const kv of (q.get('partial') || '').split(',')) { const m = /^([A-Z]{2})(\d{2}):(\d+)$/.exec(kv); if (m) { S.settings.partial = S.settings.partial || {}; (S.settings.partial[m[1]] = S.settings.partial[m[1]] || {})[m[2]] = Number(m[3]); } }
+  const ks = (q.get('keys') || '').split(',').filter(k => CLUB_NAME[k]); if (ks.length) S.settings.bagKeys = ks;
+  persist(); return true;
+}
+if (applyImport(location.search)) { history.replaceState(null, '', location.pathname); S.view = 'bag'; setTimeout(() => toast('Club distances loaded ✓'), 600); }
 function toggle(act, on, v = '') { return `<button class="tgl ${on ? 'on' : ''}" data-act="${act}" data-v="${v}" role="switch" aria-checked="${on}"><i></i></button>`; }
 
 function viewClub() {
@@ -226,12 +287,17 @@ Object.assign(ACTIONS, {
   trueClub(v) { S.settings.manualOnly = S.settings.manualOnly || {}; S.settings.manualOnly[v] = !S.settings.manualOnly[v]; },
   trueAll() { S.settings.useTrue = S.settings.useTrue === false; },
   hand(v) { S.settings.hand = v; },
+  qsStep(v) { const [k, d] = v.split(':'); S.quick[k] = Math.max(30, S.quick[k] + Number(d) * 5); },
+  impLink() { const v = ($('#impLink') || {}).value || ''; toast(applyImport(v) ? 'Club distances loaded ✓' : 'That link has no club distances'); },
+  qsSave() { S.settings.bag = Object.assign({}, S.settings.bag, { Dr: S.quick.Dr, '7i': S.quick['7i'] }); S.quick = null; toast('Bag estimated from your driver and 7-iron'); },
 });
 document.addEventListener('change', e => {
   const el = e.target.closest('[data-bind="accR"]'); if (!el) return;
   S.settings.accR = Object.assign({}, S.settings.accR, { [el.dataset.v]: Number(el.value) }); persist(); render();
 });
 document.addEventListener('input', e => {
+  const pe = e.target.closest('[data-bind="partial"]');
+  if (pe) { const [k, pc] = pe.dataset.v.split(':'); S.settings.partial = S.settings.partial || {}; (S.settings.partial[k] = S.settings.partial[k] || {})[pc] = pe.value === '' ? undefined : Number(pe.value); persist(); return; }
   const el = e.target.closest('[data-bind="clubModel"]'); if (!el) return;
   S.settings.clubModels = Object.assign({}, S.settings.clubModels, { [el.dataset.v]: el.value }); persist();
 });
