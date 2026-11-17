@@ -64,14 +64,14 @@ function bindRotGestures(el) {
     ROT.ptrs.set(e.pointerId, [e.clientX, e.clientY]);
     if (ROT.mode === 'pinch' && ROT.ptrs.size >= 2) {
       const [a, b] = [...ROT.ptrs.values()], d = Math.hypot(a[0] - b[0], a[1] - b[1]);
-      M.map.setZoom(Math.max(13, Math.min(20.5, ROT.pinch.z0 + Math.log2(d / ROT.pinch.d0))), { animate: false });
+      ROT.follow = false; M.map.setZoom(Math.max(13, Math.min(20.5, ROT.pinch.z0 + Math.log2(d / ROT.pinch.d0))), { animate: false });
       return;
     }
     const dx = e.clientX - ROT.last[0], dy = e.clientY - ROT.last[1];
     if (Math.hypot(e.clientX - ROT.start[0], e.clientY - ROT.start[1]) > 6) ROT.moved = true;
     ROT.last = [e.clientX, e.clientY];
     if (ROT.mode === 'aim') { const ll = clientToLatLng(e.clientX, e.clientY); M.aim = [ll.lat, ll.lng]; drawAimLight(); }
-    else if (ROT.mode === 'pan' && ROT.moved) { const [vx, vy] = unrot(dx, dy); M.map.panBy([-vx, -vy], { animate: false }); }
+    else if (ROT.mode === 'pan' && ROT.moved) { ROT.follow = false; const [vx, vy] = unrot(dx, dy); M.map.panBy([-vx, -vy], { animate: false }); }
   });
   const end = e => {
     if (!ROT.ptrs.has(e.pointerId)) return;
@@ -93,6 +93,15 @@ function bindRotGestures(el) {
 }
 addEventListener('resize', () => { if (M.map && $('#mapRot')) { rotPrepare(); M.map.invalidateSize({ animate: false }); fitHole(); } });
 
+/* Auto-follow: the view re-frames itself (bearing + zoom) as GPS settles or you walk,
+   until you pan or zoom by hand. ⌖ turns following back on. */
+ROT.follow = true;
+function rotFollow() {
+  if (!M.map || !ROT.follow || ROT.mode) return;
+  const O = originPt(), h = curHole(); if (!O) return;
+  const moved = !ROT.fitO || dist(O, ROT.fitO) > 12, better = ROT.fitAcc != null && M.acc != null && M.acc < ROT.fitAcc * 0.6;
+  if (moved || better || ROT.fitHoleN !== h.n) fitHole();
+}
 /* Hole-up framing: origin (you, or the tee) at the bottom centre, the pin near the top, whole hole in view. */
 function fitHole() {
   if (!M.map) return;
@@ -105,6 +114,7 @@ function fitHole() {
     return;
   }
   applyBearing(bearing(O, P));
+  ROT.fitO = O; ROT.fitAcc = M.acc; ROT.fitHoleN = h.n;
   const H = ROT.H || innerHeight, yO = H - 190, yG = Math.min(150, H * 0.2), hv = Math.max(120, yO - yG);
   const Lm = dist(O, P) + (g.poly ? Math.max(...g.poly.map(p => dist(P, p))) : 15);
   const z = Math.log2((156543.03 * Math.cos(rad(O[0])) * hv) / Lm);

@@ -119,7 +119,8 @@ function drawAim() {
   if (pin && dist(a, pin) > 3) L.polyline([a, pin], { color: '#fff', weight: 2, dashArray: '6 6', interactive: false }).addTo(AIM.layer);
   const lbl = (p, q, cls) => L.circleMarker([(p[0] + q[0]) / 2, (p[1] + q[1]) / 2], { radius: 0, opacity: 0, interactive: false })
     .bindTooltip(fd(dist(p, q)) + S.settings.unit, { permanent: true, direction: 'center', className: cls }).addTo(AIM.layer);
-  if (pin && dist(a, pin) > 15) lbl(a, pin, 'midlbl');
+  if (pin && dist(a, pin) > 45) L.circleMarker([a[0] + (pin[0] - a[0]) * 0.62, a[1] + (pin[1] - a[1]) * 0.62], { radius: 0, opacity: 0, interactive: false })
+    .bindTooltip(fd(dist(a, pin)) + S.settings.unit, { permanent: true, direction: 'center', className: 'midlbl' }).addTo(AIM.layer);
   const pl = playsLike(o, a);
   const html = `<div class="aim-box"><b>${fd(dist(o, a))}</b>${Math.abs(pl.d - dist(o, a)) >= 2 ? `<span class="${pl.d > dist(o, a) ? 'up' : 'dn'}">${pl.d > dist(o, a) ? '▲' : '▼'} ${fd(pl.d)}</span>` : ''}</div>`;
   const icon = L.divIcon({ className: 'aim-ico', html: `<span class="aim-dot"></span>${html}`, iconSize: [24, 24], iconAnchor: [12, 12] });

@@ -237,6 +237,7 @@ function startGps() {
     M.me = [p.coords.latitude, p.coords.longitude]; M.acc = p.coords.accuracy;
     if (S.view !== 'map') return;
     if (!M.fittedMe) { M.fittedMe = true; fitHole(); autoFind(); }
+    else if (typeof rotFollow === 'function') rotFollow();
     refreshWeather(); refreshElevation();
     mapTop(); drawMap();
   }, err => {
@@ -273,8 +274,9 @@ function drawMap() {
     const step = S.settings.unit === 'yd' ? 0.9144 : 1;
     for (const r of [50, 100, 150, 200, 250]) {
       const rm = r * step; if (rm > toG + 10) break;
+      const aimD = typeof aimPt === 'function' && aimPt() ? dist(O, aimPt()) : null, skipLbl = aimD != null && Math.abs(aimD - rm) < 28;
       L.circle(O, { radius: rm, color: '#fff', weight: 1, opacity: 0.45, fill: false, dashArray: '3 6', interactive: false }).addTo(M.layer);
-      L.circleMarker(g ? ringLabelPt(O, pinPt(h.n) || g.c, rm) : [O[0] + rm / 110540, O[1]], { radius: 0, opacity: 0, interactive: false })
+      if (!skipLbl) L.circleMarker(g ? ringLabelPt(O, pinPt(h.n) || g.c, rm) : [O[0] + rm / 110540, O[1]], { radius: 0, opacity: 0, interactive: false })
         .bindTooltip(String(r), { permanent: true, direction: 'center', className: 'arclbl' }).addTo(M.layer);
     }
   }
@@ -539,7 +541,7 @@ Object.assign(ACTIONS, {
   setScore(v) { const h = curHole(); clampHole(h); h.score = Number(v); clampHole(h); touch(h); },
   setPutts(v) { const h = curHole(); clampHole(h); h.putts = Number(v); clampHole(h); touch(h); },
   finishHoleMap() {
-    M.who = null; M.aim = null; M.aimClub = null;
+    M.who = null; ROT.follow = true; M.aim = null; M.aimClub = null;
     const r = activeRound(), h = curHole(); clampHole(h); touch(h); M.sheet = null; M.target = null;
     if (S.hole >= r.holes.length - 1) { if (confirm('Finish the round?')) ACTIONS.finishRound(); return; }
     S.hole++; M.club = 'Dr'; setTimeout(fitHole, 0);
@@ -550,9 +552,9 @@ Object.assign(ACTIONS, {
   delShot(v) { if (confirm('Delete this shot?')) { curHole().shots.splice(Number(v), 1); syncPens(curHole()); } },
   toggleFlag() { M.setFlag = !M.setFlag; M.target = null; M.sheet = null; },
   clearTarget() { M.target = null; },
-  recenter() { fitHole(); },
-  mapPrev() { S.hole = Math.max(0, S.hole - 1); M.target = null; M.aim = null; M.aimClub = null; M.setPin = M.setTee = false; M.club = 'Dr'; setTimeout(fitHole, 0); },
-  mapNext() { const h = curHole(); if (!h.done && h.score != null) h.done = true; S.hole = Math.min(activeRound().holes.length - 1, S.hole + 1); M.target = null; M.aim = null; M.aimClub = null; M.setPin = M.setTee = false; M.club = 'Dr'; setTimeout(fitHole, 0); },
+  recenter() { ROT.follow = true; fitHole(); },
+  mapPrev() { ROT.follow = true; S.hole = Math.max(0, S.hole - 1); M.target = null; M.aim = null; M.aimClub = null; M.setPin = M.setTee = false; M.club = 'Dr'; setTimeout(fitHole, 0); },
+  mapNext() { ROT.follow = true; const h = curHole(); if (!h.done && h.score != null) h.done = true; S.hole = Math.min(activeRound().holes.length - 1, S.hole + 1); M.target = null; M.aim = null; M.aimClub = null; M.setPin = M.setTee = false; M.club = 'Dr'; setTimeout(fitHole, 0); },
   findGreens() { M.sheet = null; autoFind(true); },
   clearGreen() { delete courseGeo().holes[curHole().n]; saveGeo(); },
 });
