@@ -40,3 +40,9 @@ Small improvements made by the improvement loop, newest first.
 - Aim labels no longer overlap: the distance-to-pin label sits further along the line and distance rings near the aim point hide their number.
 - Map this course (in Course preview): for any hole without map data, tap the tee, tap the green, and optionally trace the green's edge for front/back distances. Saved on the phone and used by the GPS map. "Send course map" shares the drawing so it can be added to the app for everyone.
 - Course preview keeps your zoom/position while you work, and the hole-info box no longer blocks taps.
+- Practice tab: drills for putting, short game, approach and off the tee, ordered by your weakest area (strokes gained, or focus areas until you have fully tracked holes). Log a score per session with ± buttons; best, average and history per drill. Included in backups.
+- Backup reminder on Home every 3 new rounds (rounds only live on the phone); "Later" snoozes it for a week.
+- GPS map: "On hole N's tee? Go to hole N" when you're standing on the next tee after scoring the current hole.
+- Course page: short "No rating & slope yet" note with an Add tee button instead of a long message.
+- Fix: handicap index number was invisible on the Stats overview.
+- "Round paused" message shortened.

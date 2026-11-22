@@ -339,6 +339,8 @@ function mapOverlays() {
   else if (g && !usingGps()) chips.push(g.tee ? 'Not on this hole: distances are from the tee' : '⚠︎ You don\'t seem to be on this hole');
   const note = (courseGeo().notes || {})[h.n];
   if (note && !M.setFlag && !M.setPin && !M.setTee) chips.push('📝 ' + esc(note));
+  { const nh = r.holes[S.hole + 1], ng = nh && holeGeo(nh.n);
+    if (M.me && h.done && h.score != null && ng && ng.tee && dist(M.me, ng.tee) < 40) chips.push(`On hole ${nh.n}'s tee? <button class="chipbtn" data-act="mapNext">Go to hole ${nh.n}</button>`); }
   $('#mapChips').innerHTML = chips.map(c => `<div class="mchip">${c}</div>`).join('');
 
   // floating buttons

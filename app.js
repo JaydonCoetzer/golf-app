@@ -776,7 +776,7 @@ const ACTIONS = {
     r.completed = true; saveRoundCourse(r); if (S.activeId === v) S.activeId = null;
     S.view = 'rounds'; S.detailId = v; S.detailTab = 'recap'; window.scrollTo(0, 0);
   },
-  exitRound() { S.activeId = null; S.draft = null; S.view = 'home'; toast('Round saved. Resume it any time.'); },
+  exitRound() { S.activeId = null; S.draft = null; S.view = 'home'; toast('Round paused'); },
 
   /* hole */
   goHole(v) { S.hole = Number(v); },
@@ -832,7 +832,8 @@ const ACTIONS = {
   theme(v) { S.settings.theme = v; },
   delCourse(v) { S.courses.splice(Number(v), 1); },
   exportJson() {
-    download(`golf-stats-backup-${localDate()}.json`, JSON.stringify({ app: 'golf-stats', version: 1, exported: new Date().toISOString(), rounds: S.rounds, courses: S.courses, settings: S.settings, geo: S.geo }, null, 1), 'application/json');
+    S.settings.lastBackup = Date.now(); S.settings.backupRounds = S.rounds.filter(r => r.completed).length; toast('Backup saved: keep the file somewhere safe (e.g. Files / Google Drive)');
+    download(`golf-stats-backup-${localDate()}.json`, JSON.stringify({ app: 'golf-stats', version: 1, exported: new Date().toISOString(), rounds: S.rounds, courses: S.courses, settings: S.settings, geo: S.geo, practice: S.practice || [] }, null, 1), 'application/json');
   },
   importJson() { $('#importFile').click(); },
   exportCsv() {
@@ -900,6 +901,7 @@ $('#importFile').addEventListener('change', async e => {
     const ids = new Set(S.rounds.map(r => r.id));
     let added = 0;
     for (const r of data.rounds) if (r && r.id && Array.isArray(r.holes) && !ids.has(r.id)) { S.rounds.push(r); added++; }
+    if (Array.isArray(data.practice)) { const have = new Set((S.practice || []).map(x => x.id)); S.practice = (S.practice || []).concat(data.practice.filter(x => x && x.id && !have.has(x.id))); save('gs.practice', S.practice); }
     if (data.geo) for (const k in data.geo) if (!S.geo[k]) S.geo[k] = data.geo[k];
     save('gs.geo', S.geo);
     for (const c of data.courses || []) if (c && c.name && !S.courses.some(x => x.name === c.name && x.pars.length === c.pars.length)) S.courses.push(c);

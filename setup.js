@@ -78,7 +78,8 @@ function viewNewRound() {
     <div class="cp-name"><b>${esc(d.course)}</b>${town ? `<span>${esc(town)}</span>` : ''}</div>
     ${W && !W.busy ? `<div class="cp-wx"><span>${wxIcon(W.code)}</span><small>${W.w} km/h<br>${W.t}°C</small></div>` : ''}
   </div>
-  ${d.status && (d.status.busy || d.status.warn) ? `<div class="cstatus ${d.status.busy ? 'busy' : 'warn'}" style="margin-bottom:10px">${d.status.busy ? '<span class="spin"></span>' : ''}${esc(d.status.msg)}${d.status.retry ? ' <button class="chipbtn" data-act="retryCourse">Try again</button>' : ''}</div>` : ''}
+  ${d.status && d.status.short && !d.status.busy ? `<div class="cstatus warn cs-short" style="margin-bottom:10px"><span>No ${esc(d.status.miss.join(' or '))} for this course yet.</span>${d.status.miss.some(m => /rating/.test(m)) ? '<button class="chipbtn" data-act="psheet" data-v="addtee">Add tee</button>' : ''}</div>` : ''}
+  ${d.status && !d.status.short && (d.status.busy || d.status.warn) ? `<div class="cstatus ${d.status.busy ? 'busy' : 'warn'}" style="margin-bottom:10px">${d.status.busy ? '<span class="spin"></span>' : ''}${esc(d.status.msg)}${d.status.retry ? ' <button class="chipbtn" data-act="retryCourse">Try again</button>' : ''}</div>` : ''}
   <div class="cp-stats"><div><b>${n}</b><span>Holes</span></div><div><b>${parT}</b><span>Par</span></div><div><b>${lenT ? fd(lenT) : '–'}<small>${lenT ? S.settings.unit : ''}</small></b><span>Length</span></div><div><b>${T && T.cr ? `${T.cr}<small>/${T.slope}</small>` : '–'}</b><span>Rating/Slope</span></div></div>
   <div class="cp-btns"><button class="btn cp-prev" data-act="cpPreview">Course preview</button><button class="btn primary" data-act="startRound">Play</button></div>
   <div class="card cp-card"><details class="help"><summary><b>Course scorecard</b> <span class="sub">${T ? esc(T.name) + ' tees' : 'tap to view'}</span></summary>

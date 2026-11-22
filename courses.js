@@ -297,7 +297,7 @@ async function chooseCourse(hit) {
     if (f.par < osm.holes && !existing) miss.push('some pars (guessed from length)');
     if (!S.draft.si) miss.push('stroke index');
     miss.push('rating & slope');
-    S.draft.status = { msg: `Loaded ${osm.holes} holes with GPS greens. Missing: ${miss.join(', ')}.${S.settings.gcaKey ? '' : ' Add a free course-database key in Settings to get rating & slope automatically.'}`, warn: true };
+    S.draft.status = { short: true, miss, msg: `Loaded ${osm.holes} holes with GPS greens. Missing: ${miss.join(', ')}.${S.settings.gcaKey ? '' : ' Add a free course-database key in Settings to get rating & slope automatically.'}`, warn: true };
   } else if (existing) {
     S.draft.status = { msg: 'Using your saved card for this course.', ok: true };
   } else {

@@ -26,7 +26,7 @@ function courseHcp(index, cr, slope, par) {
 function handicapCard() {
   const H = handicapIndex();
   if (H.index == null) return `<div class="card"><h2>Handicap index</h2><div class="sub">Finish ${3 - H.n} more 18-hole round${3 - H.n === 1 ? '' : 's'} with the <b>course rating</b> and <b>slope</b> filled in (they're on the scorecard) and your handicap index is worked out here.</div></div>`;
-  return `<div class="card"><div class="tile hero" style="background:none;padding:0"><div><div class="k">Handicap index (estimate)</div><div class="v" style="font-size:34px">${H.index.toFixed(1)}</div></div>
+  return `<div class="card"><div class="hcp-tile"><div><div class="k">Handicap index (estimate)</div><div class="v">${H.index.toFixed(1)}</div></div>
     <div class="sub" style="text-align:right">best ${H.k} of your last ${H.n}<br>World Handicap System method</div></div>
     <div class="sub" style="margin-top:6px">Unofficial. For an official handicap, post your scores with your club or union.</div></div>`;
 }
@@ -148,7 +148,7 @@ function viewHome() {
   const A = aggregate(full.slice(0, 10));
 
   return `<div class="home">
-    <div class="h-toprow">${homeProfileCard()}<button class="h-gear" data-act="goSettings" aria-label="Settings"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button></div>
+    ${backupNudge()}<div class="h-toprow">${homeProfileCard()}<button class="h-gear" data-act="goSettings" aria-label="Settings"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button></div>
 
     <div class="h-title">Handicap</div>
     <div class="h-hcp" data-act="goStats"><svg class="h-golfer" viewBox="0 0 40 60" aria-hidden="true"><circle cx="24" cy="8" r="5"/><path d="M22 15l-6 14 4 2-3 26h5l4-20 5 20h5l-7-30 1-10 9-12-3-2-9 11z"/></svg>
@@ -260,3 +260,12 @@ function viewPractice() {
   ${A ? `<div class="h-title" style="margin:4px 2px 10px">What to work on now</div>` + focusCard(A) : ''}`;
 }
 Object.assign(ACTIONS, { goSettings() { S.view = 'settings'; window.scrollTo(0, 0); } });
+
+/* Rounds only live on this phone: nudge a backup every 3 finished rounds (dismissable). */
+function backupNudge() {
+  const done = S.rounds.filter(r => r.completed).length, since = done - (S.settings.backupRounds || 0);
+  if (done < 2 || since < 3 || (S.settings.backupSnooze || 0) > Date.now()) return '';
+  return `<div class="card bk-card"><b>Back up your rounds</b><div class="sub">${since} new round${since > 1 ? 's' : ''} since your last backup. Your rounds are only stored on this phone.</div>
+    <div class="grid2" style="margin-top:10px"><button class="btn primary" data-act="exportJson">Back up now</button><button class="btn" data-act="backupLater">Later</button></div></div>`;
+}
+Object.assign(ACTIONS, { backupLater() { S.settings.backupSnooze = Date.now() + 7 * 864e5; } });
