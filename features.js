@@ -180,7 +180,8 @@ function viewHome() {
     <div class="h-quad">
       <div><b>${fmtPct(A.sz, A.szN)}</b><span>SZIR</span></div><div><b>${fmtPct(A.d3, A.d3N)}</b><span>Down in 3</span></div>
       <div><b>${fmtPct(A.fir, A.firN)}</b><span>Fairways</span></div><div><b>${fmtPct(A.gir, A.girN)}</b><span>Greens</span></div>
-    </div>` : ''}
+    </div>
+    ${(() => { const F = typeof practiceFocus === 'function' ? practiceFocus() : null; return F ? `<button class="h-focus" data-act="goPractice"><div><small>Work on next</small><b>${AREA[F.area]}</b><span>${esc(F.why)}</span></div><i>›</i></button>` : ''; })()}` : ''}
 
     <button class="h-start" data-act="${inprog ? 'resume' : 'newRound'}" data-v="${inprog ? inprog.id : ''}">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 21V3l11 4.5L8 12" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/></svg>

@@ -824,7 +824,7 @@ details.help[open] > summary::after { transform: rotate(90deg); }
 .pl-hcp { flex: 0 0 76px; border: 0; border-radius: 14px; background: var(--surface); box-shadow: var(--shadow); display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--text); }
 .pl-hcp b { font-size: 20px; } .pl-hcp small { color: var(--muted); font-size: 11.5px; font-weight: 700; }
 .pl-x { flex: 0 0 40px; border: 0; background: none; color: var(--muted); font-size: 16px; }
-.pl-add { background: var(--surface); color: var(--good); box-shadow: inset 0 0 0 1.5px var(--good); }
+.pl-add { background: var(--surface); color: var(--brand-2); box-shadow: inset 0 0 0 1.5px var(--brand-2); }
 .su-start { margin: 12px 0 16px; padding: 16px; font-size: 18px; border-radius: 14px; }
 #pageSheet { position: fixed; inset: 0; z-index: 800; pointer-events: none; }
 #pageSheet.open { pointer-events: auto; }
@@ -883,3 +883,6 @@ body.sheet-open .tabs { display: none; }
 .sm-trio b{display:block;font-size:22px;color:var(--brand-2)}
 .sm-trio span{font-size:12px;color:var(--muted)}
 .rc-card .ok{color:#1f8a4c}.rc-card .no{color:#c0392b}
+.rc-time{font-size:13px;opacity:.75;margin:-4px 0 10px}
+.h-focus{display:flex;align-items:center;gap:10px;width:100%;text-align:left;background:var(--surface);border:0;border-radius:16px;padding:14px 16px;margin:10px 0 4px;box-shadow:inset 3px 0 0 var(--brand-2);color:var(--ink,inherit);font:inherit}
+.h-focus div{flex:1}.h-focus small{display:block;font-size:12px;color:var(--muted)}.h-focus b{display:block;font-size:17px;color:var(--brand-2)}.h-focus span{display:block;font-size:13px;color:var(--muted);margin-top:2px}.h-focus i{font-style:normal;font-size:22px;color:var(--muted)}

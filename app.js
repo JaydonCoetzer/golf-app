@@ -716,7 +716,7 @@ function viewSettings() {
     <details class="help"><summary>Install on your phone</summary>
       <p><b>iPhone (Safari):</b> tap Share → <i>Add to Home Screen</i>.<br><b>Android (Chrome):</b> tap ⋮ → <i>Install app</i> / <i>Add to Home screen</i>.<br>After the first load it works offline, even with no signal on the course.</p>
     </details>
-    <div class="sub" style="margin-top:8px">Version 1.8</div>
+    <div class="sub" style="margin-top:8px">Version 1.9</div>
   </div>`;
 }
 
@@ -773,7 +773,7 @@ const ACTIONS = {
     const n = playedHoles(r).length;
     if (!n) { if (!confirm('No holes have a score yet. Delete this round?')) return; S.rounds = S.rounds.filter(x => x.id !== v); if (S.activeId === v) S.activeId = null; S.view = 'home'; toast('Round deleted'); return; }
     if (!confirm(`End this round after ${n} hole${n > 1 ? 's' : ''}? It is saved to your rounds.`)) return;
-    r.completed = true; saveRoundCourse(r); if (S.activeId === v) S.activeId = null;
+    r.completed = true; r.ended = r.ended || Date.now(); saveRoundCourse(r); if (S.activeId === v) S.activeId = null;
     S.view = 'rounds'; S.detailId = v; S.detailTab = 'recap'; window.scrollTo(0, 0);
   },
   exitRound() { S.activeId = null; S.draft = null; S.view = 'home'; toast('Round paused'); },
@@ -784,7 +784,7 @@ const ACTIONS = {
   nextHole() { const h = curHole(); clampHole(h); touch(h); S.hole++; if (S.fromMap) S.view = 'map'; window.scrollTo(0, 0); },
   finishRound() {
     const r = activeRound(); const h = curHole(); clampHole(h); touch(h);
-    r.completed = true; saveRoundCourse(r); S.activeId = null;
+    r.completed = true; r.ended = r.ended || Date.now(); saveRoundCourse(r); S.activeId = null;
     S.view = 'rounds'; S.detailId = r.id; S.detailTab = 'recap'; toast('Round complete!'); window.scrollTo(0, 0);
   },
   par(v) { const h = curHole(); h.par = Number(v); if (!h.done) { h.score = null; h.putts = null; } if (h.par === 3) h.fw = null; },

@@ -60,6 +60,7 @@ function recapHtml(r) {
   <div class="rc-hero">
     <div class="rc-top"><div><span class="rc-score">${A.strokes || '–'}</span><sup>${A.holes ? toPar(tp) : ''}</sup></div>
       <div class="rc-tees">${r.tees ? esc(r.tees) + ' tees' : fmtDate(r.date)}${hc && A.holes ? `<small>${NT.pts} pts · net ${NT.net}</small>` : ''}</div></div>
+    ${r.ended && r.created && r.ended - r.created < 8 * 36e5 && r.ended - r.created > 20 * 6e4 ? `<div class="rc-time">⏱ ${Math.floor((r.ended - r.created) / 36e5)}h ${String(Math.round((r.ended - r.created) % 36e5 / 6e4)).padStart(2, '0')}m round</div>` : ''}
     <div class="rc-trio"><div><b>${r.slope || '–'}</b><span>Slope</span></div><div><b>${r.cr || '–'}</b><span>Rating</span></div><div><b>${diff != null ? diff.toFixed(1) : '–'}</b><span>Differential</span></div></div>
   </div>
   <div class="card">

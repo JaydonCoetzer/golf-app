@@ -68,6 +68,7 @@ function viewPractice() {
     ${order.map(d => drillCard(d, S.prOpen === d.id)).join('')}`;
 }
 Object.assign(ACTIONS, {
+  goPractice() { S.view = 'practice'; window.scrollTo(0, 0); },
   prOpen(v) { S.prOpen = S.prOpen === v ? null : v; S.prLog = null; },
   prLog(v) { const d = DRILLS.find(x => x.id === v), h = drillHistory(v); S.prLog = v; S.prVal = h.length ? h[h.length - 1].score : Math.round(d.max / 2); },
   prStep(v) { const d = DRILLS.find(x => x.id === S.prLog); S.prVal = Math.max(0, Math.min(d.max, S.prVal + Number(v))); },

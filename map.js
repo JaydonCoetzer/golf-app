@@ -69,9 +69,11 @@ function markShot() {
   const h = curHole();
   h.shots = h.shots || [];
   const pos = [M.me[0], M.me[1]];
+  const last = h.shots[h.shots.length - 1];
+  if (last && last.at && Date.now() - last.at < 20000 && dist([last.lat, last.lng], pos) < 4 && !confirm('You marked a shot here a moment ago. Mark another one?')) return;
   const g0 = holeGeo(h.n);
   const lie = !h.shots.length ? 'tee' : M.club === 'Pt' || (g0 && g0.poly && inPoly(pos, g0.poly)) ? 'green' : null;
-  h.shots.push({ lat: pos[0], lng: pos[1], club: M.club, acc: Math.round(M.acc || 0), bad: null, lie, pen: null });
+  h.shots.push({ lat: pos[0], lng: pos[1], club: M.club, acc: Math.round(M.acc || 0), bad: null, lie, pen: null, at: Date.now() });
   M.lastShot = h.shots.length - 1;
   // Scoring zone: the first time a marked ball is inside the zone, the shots taken so far = shots to reach the zone.
   const g = holeGeo(h.n);
@@ -80,8 +82,10 @@ function markShot() {
     const firstIn = h.shots.findIndex(s => dist([s.lat, s.lng], g.c) <= zoneMetres());
     if (firstIn === idx) { h.szir = idx <= h.par - 2; toast(h.szir ? 'In the scoring zone in regulation ✓' : `In the zone in ${idx} shots`); }
   }
-  if (M.club === 'Dr' || M.club === '3W') M.club = '7i';
-  if (M.club === 'Pt') M.club = 'Pt';
+  // next club: on the green → putter, otherwise the club for what's left to the pin
+  if (lie === 'green') M.club = 'Pt';
+  else { const pin = typeof pinPt === 'function' ? pinPt(h.n) : g && g.c, left = pin ? dist(pos, pin) : null, rc = left != null ? recommendClub(left) : null;
+    if (rc) M.club = rc.k; else if (M.club === 'Dr' || M.club === '3W') M.club = '7i'; }
   if (M.acc > 25) toast(`GPS is rough (±${fd(M.acc)}). Shot saved anyway`);
 }
 
