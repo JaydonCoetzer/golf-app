@@ -14,8 +14,12 @@ function rangeChips() {
 /* extra numbers the main aggregate doesn't carry */
 function extraStats(rounds) {
   const X = { hitN: 0, hitTP: 0, missN: 0, missTP: 0, puttsByPar: { 3: [0, 0], 4: [0, 0], 5: [0, 0] }, putt: [0, 0, 0, 0], firByPar: { 4: [0, 0], 5: [0, 0] }, girByPar: { 3: [0, 0], 4: [0, 0], 5: [0, 0] },
-    girHitTP: [0, 0], girMissTP: [0, 0], lies: {}, penByType: { ob: 0, water: 0, pen: 0 }, d3ByPar: { 3: [0, 0], 4: [0, 0], 5: [0, 0] } };
-  for (const r of rounds) for (const h of playedHoles(r)) {
+    girHitTP: [0, 0], girMissTP: [0, 0], lies: {}, penByType: { ob: 0, water: 0, pen: 0 }, d3ByPar: { 3: [0, 0], 4: [0, 0], 5: [0, 0] }, bb: [0, 0], bogeyOrBetter: 0, blowups: 0, firstSz: 0, firstSzN: 0 };
+  for (const r of rounds) { let prev = null; for (const h of playedHoles(r).sort((a, b) => a.n - b.n)) {
+    if (prev != null && prev > 0) { X.bb[1]++; if (h.score - h.par < 0) X.bb[0]++; }
+    prev = h.score - h.par;
+    if (prev <= 1) X.bogeyOrBetter++; if (prev >= 2) X.blowups++;
+    if (h.inZone != null && h.putts != null && h.inZone >= 2) { X.firstSzN++; if (h.inZone - (h.putts ?? 9) <= 1) X.firstSz++; }
     const x = derive(h), tp = h.score - h.par;
     if (h.par > 3 && h.fw) { if (h.fw === 'hit') { X.hitN++; X.hitTP += tp; } else { X.missN++; X.missTP += tp; } const f = X.firByPar[h.par]; if (f) { f[1]++; if (h.fw === 'hit') f[0]++; } }
     if (h.putts != null) {
@@ -27,7 +31,7 @@ function extraStats(rounds) {
     if (h.inZone != null) { const d = X.d3ByPar[h.par]; if (d) { d[1]++; if (h.inZone <= 3) d[0]++; } }
     X.penByType.ob += h.ob || 0; X.penByType.water += h.water || 0; X.penByType.pen += h.pen || 0;
     for (const s of h.shots || []) if (s.lie) X.lies[s.lie] = (X.lies[s.lie] || 0) + 1;
-  }
+  } }
   return X;
 }
 const sgn = v => (v == null || !isFinite(v) ? '–' : (v > 0 ? '+' : '') + v.toFixed(2));
@@ -82,7 +86,11 @@ function statScoring(A, X) {
     ${tile('Par or better with SZIR', fmtPct(A.szirPar, A.sz), 'when you reach the zone in regulation')}
     ${tile('Par or better without', fmtPct(A.noSzirPar, A.noSzirN), 'when you don\'t')}
     ${tile('Avg shots inside zone', A.d3N ? fmt1(A.inZoneSum / A.d3N) : '–', 'lower is better')}
-    ${tile('SZIR + Down in 3', fmtPct(A.szAndD3, A.szAndD3N), 'both on the same hole')}</div>
+    ${tile('SZIR + Down in 3', fmtPct(A.szAndD3, A.szAndD3N), 'both on the same hole')}
+    ${tile('Bogey or better', fmtPct(X.bogeyOrBetter, A.holes), 'avoid the big number')}
+    ${tile('Doubles or worse', A.holes ? fmt1(A.per18(X.blowups)) : '–', 'per 18 holes')}
+    ${tile('Bounce back', fmtPct(...X.bb), 'birdie or better after a bogey+')}
+    ${tile('On the green from the zone', fmtPct(X.firstSz, X.firstSzN), 'first shot inside 100 finds the green')}</div>
     <h3>SZIR and Down in 3 by par</h3>${hbars([3, 4, 5].flatMap(p => [[`SZIR par ${p}`, pct(...A.szByPar[p])], [`D3 par ${p}`, pct(...X.d3ByPar[p])]]), 100, v => v + '%')}</div>`;
 }
 function statDriving(A, X, rs) {

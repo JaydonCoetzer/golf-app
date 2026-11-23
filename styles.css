@@ -877,3 +877,9 @@ body.sheet-open .tabs { display: none; }
 .dr-head i { font-style: normal; color: var(--muted); font-size: 18px; }
 .dr-spark { display: flex; align-items: flex-end; gap: 4px; height: 28px; margin-top: 8px; }
 .dr-spark i { flex: 1; max-width: 22px; background: var(--brand-2); border-radius: 3px 3px 0 0; opacity: .85; }
+
+/* Scoring Method round card */
+.sm-trio{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;text-align:center}
+.sm-trio b{display:block;font-size:22px;color:var(--brand-2)}
+.sm-trio span{font-size:12px;color:var(--muted)}
+.rc-card .ok{color:#1f8a4c}.rc-card .no{color:#c0392b}

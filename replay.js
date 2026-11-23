@@ -11,6 +11,20 @@ function detailTabs() {
 }
 
 /* ---------- recap ---------- */
+/* Scoring Method summary for one round: SZIR, Down in 3, both, and the biggest leak */
+function smCard(r) {
+  const hs = playedHoles(r), sz = hs.filter(h => h.szir != null), d3 = hs.filter(h => h.inZone != null);
+  if (!sz.length && !d3.length) return '';
+  const szY = sz.filter(h => h.szir).length, d3Y = d3.filter(h => h.inZone <= 3).length;
+  const both = hs.filter(h => h.szir && h.inZone != null && h.inZone <= 3).length;
+  const bothPar = hs.filter(h => h.szir && h.inZone != null && h.inZone <= 3 && h.score <= h.par).length;
+  const szMiss = sz.length ? 1 - szY / sz.length : 0, d3Miss = d3.length ? 1 - d3Y / d3.length : 0;
+  const tip = !sz.length || !d3.length ? '' : szMiss > d3Miss + 0.1 ? 'Biggest leak: getting to the zone. Pick the club that gets you inside 100 in regulation, not the longest one.'
+    : d3Miss > szMiss + 0.1 ? 'Biggest leak: inside 100. Aim for the middle of the green and lag the first putt close.' : 'Both halves are even. Keep doing what you did.';
+  return `<div class="card sm-card"><h2>Scoring Method</h2>
+    <div class="sm-trio"><div><b>${sz.length ? `${szY}/${sz.length}` : '–'}</b><span>SZIR</span></div><div><b>${d3.length ? `${d3Y}/${d3.length}` : '–'}</b><span>Down in 3</span></div><div><b>${both}</b><span>Both${both ? ` · ${bothPar} par+` : ''}</span></div></div>
+    ${tip ? `<div class="sub" style="margin-top:8px">${tip}</div>` : ''}</div>`;
+}
 function recapHtml(r) {
   const { A, tp } = roundSummary(r), hc = hasHcp(r), NT = netTotals(r), diff = roundDiff(r);
   const half = S.cardHalf || 'front', n = r.holes.length;
@@ -38,6 +52,8 @@ function recapHtml(r) {
       ${hc ? row('Net', h => played(h) ? h.score - shotsGiven(r.hcp, h.si) : '–', tot(hs, h => h.score - shotsGiven(r.hcp, h.si)) || '–') : ''}
       ${hc ? row('Pts', h => played(h) ? points(r, h) : '–', tot(hs, h => points(r, h))) : ''}
       ${row('Putts', h => played(h) ? h.putts ?? '–' : '–', tot(hs, h => h.putts || 0))}
+      ${hs.some(h => h.szir != null) ? row('SZIR', h => h.szir == null ? '–' : h.szir ? '<b class="ok">✓</b>' : '<span class="no">✗</span>', hs.filter(h => h.szir).length) : ''}
+      ${hs.some(h => h.inZone != null) ? row('D3', h => h.inZone == null ? '–' : h.inZone <= 3 ? '<b class="ok">✓</b>' : '<span class="no">✗</span>', hs.filter(h => h.inZone != null && h.inZone <= 3).length) : ''}
       ${(r.players || []).map(pl => row(esc(pl.name), h => { const v = pScore(h, pl.id); return v == null ? '–' : `<span class="sc ${scoreClass(v - h.par)}">${v}</span>`; }, sum(hs.map(h => pScore(h, pl.id) || 0)) || '–')).join('')}`;
   }
   return `
@@ -51,6 +67,7 @@ function recapHtml(r) {
     <div class="scroll-x"><table class="tbl rc-card">${table}</table></div>
     ${!r.cr || !r.slope ? '<div class="sub" style="margin-top:8px">Add the course rating and slope when you start a round to get a differential.</div>' : ''}
   </div>
+  ${smCard(r)}
   ${gameCard(r)}
   <button class="btn primary block" style="margin-bottom:10px" data-act="shareRound" data-v="${r.id}">📤 Share scorecard</button>
   <div class="card">
