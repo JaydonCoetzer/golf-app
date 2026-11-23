@@ -2,6 +2,7 @@
 
 Small improvements made by the improvement loop, newest first.
 
+- Scoring Method: round Recap shows SZIR, Down in 3, Both and your biggest leak; ✓/✗ rows on the card. Scoring stats add bogey or better, doubles per 18, bounce back and on-the-green-from-the-zone.
 - Share scorecard: a finished round can be shared (WhatsApp etc.) or copied as a text summary.
 - Player profile: name, home club, handicap, best/average score and a tour-style headshot made on the phone (face crop, transparent background, studio look). Save as PNG.
 - Quick score sheet on the map: tap score and putts, tee shot and scoring zone, then Finish hole.
