@@ -296,8 +296,11 @@ async function chooseCourse(hit) {
     const f = osm.found, miss = [];
     if (f.par < osm.holes && !existing) miss.push('some pars (guessed from length)');
     if (!S.draft.si) miss.push('stroke index');
-    miss.push('rating & slope');
-    S.draft.status = { short: true, miss, msg: `Loaded ${osm.holes} holes with GPS greens. Missing: ${miss.join(', ')}.${S.settings.gcaKey ? '' : ' Add a free course-database key in Settings to get rating & slope automatically.'}`, warn: true };
+    const bt = BUILTIN_COURSES.find(c => sameCourse(c.name, name) && c.teeSets);
+    if (bt && typeof applyTee === 'function') { S.draft.teeSets = bt.teeSets; S.draft.teeIdx = 0; applyTee(S.draft, bt.teeSets[0]); }
+    else miss.push('rating & slope');
+    if (!miss.length) S.draft.status = { ok: true, short: true, miss, msg: `Scorecard and GPS greens loaded (${osm.holes} holes). Pick your tees below.` };
+    else S.draft.status = { short: true, miss, msg: `Loaded ${osm.holes} holes with GPS greens. Missing: ${miss.join(', ')}.${S.settings.gcaKey ? '' : ' Add a free course-database key in Settings to get rating & slope automatically.'}`, warn: true };
   } else if (existing) {
     S.draft.status = { msg: 'Using your saved card for this course.', ok: true };
   } else {

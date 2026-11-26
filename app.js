@@ -7,6 +7,11 @@ const DEFAULT_SETTINGS = { hcp: '', zone: 100, unit: 'm', target: 15, szGoal: 70
 const STD_PARS = [4, 4, 3, 4, 5, 4, 3, 4, 5, 4, 4, 3, 4, 5, 4, 3, 4, 5];
 /* Built-in course cards. Par and stroke index (men's) from public scorecards; check against the club card. */
 const BUILTIN_COURSES = [
+  // TheGrint scorecard (Nov 2026): pars/SI for all 18; tee ratings below in setup.js
+  { name: 'Rondebosch Golf Club', area: 'Mowbray, Cape Town', tees: 'Yellow', cr: 72.0, slope: 128, center: [-33.95248, 18.49315],
+    pars: [4, 3, 5, 4, 4, 3, 4, 4, 5, 4, 4, 3, 5, 4, 4, 3, 5, 4],
+    si:   [9, 13, 5, 3, 11, 17, 7, 15, 1, 10, 2, 18, 12, 14, 4, 16, 6, 8],
+    len:  [289, 178, 503, 397, 276, 130, 367, 243, 462, 292, 367, 145, 452, 320, 310, 156, 450, 376] },
   { name: 'Parow Golf Course', area: 'Parow, Cape Town',
     pars: [4, 3, 5, 4, 4, 5, 3, 4, 4, 4, 4, 5, 3, 4, 4, 5, 3, 4],
     si:   [9, 13, 5, 15, 11, 1, 17, 7, 3, 16, 12, 2, 18, 8, 4, 10, 14, 6] },

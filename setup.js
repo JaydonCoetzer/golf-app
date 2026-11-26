@@ -15,6 +15,15 @@ const PS = { w: {} };
   c.teeIdx = 0;
 })();
 
+/* Rondebosch tees from TheGrint (yards → metres); per-hole lengths scaled to each tee's total. */
+(function rondeboschTees() {
+  const c = BUILTIN_COURSES.find(x => /rondebosch/i.test(x.name)); if (!c || c.teeSets) return;
+  const base = sum(c.len), mk = (name, g, yd, cr, slope) => { const total = Math.round(yd * 0.9144); return { name, g, cr, slope, pars: c.pars.slice(), si: c.si.slice(), len: c.len.map(l => Math.round(l * total / base)) }; };
+  c.teeSets = [mk('Yellow', 'M', 6561, 72.0, 128), mk('White', 'M', 6116, 69.8, 124), mk('Red', 'M', 5618, 67.5, 119),
+    mk('Yellow', 'W', 6561, 78.8, 137), mk('White', 'W', 6116, 76.4, 131), mk('Red', 'W', 5618, 73.5, 123)];
+  c.teeIdx = 0;
+})();
+
 function teeOptions(d) {
   if (d.teeSets && d.teeSets.length) return d.teeSets;
   const b = BUILTIN_COURSES.find(x => sameCourse(x.name, d.course) && x.teeSets);
@@ -78,7 +87,7 @@ function viewNewRound() {
     <div class="cp-name"><b>${esc(d.course)}</b>${town ? `<span>${esc(town)}</span>` : ''}</div>
     ${W && !W.busy ? `<div class="cp-wx"><span>${wxIcon(W.code)}</span><small>${W.w} km/h<br>${W.t}°C</small></div>` : ''}
   </div>
-  ${d.status && d.status.short && !d.status.busy ? `<div class="cstatus warn cs-short" style="margin-bottom:10px"><span>No ${esc(d.status.miss.join(' or '))} for this course yet.</span>${d.status.miss.some(m => /rating/.test(m)) ? '<button class="chipbtn" data-act="psheet" data-v="addtee">Add tee</button>' : ''}</div>` : ''}
+  ${d.status && d.status.short && !d.status.busy && d.status.miss.length ? `<div class="cstatus warn cs-short" style="margin-bottom:10px"><span>No ${esc(d.status.miss.join(' or '))} for this course yet.</span>${d.status.miss.some(m => /rating/.test(m)) ? '<button class="chipbtn" data-act="psheet" data-v="addtee">Add tee</button>' : ''}</div>` : ''}
   ${d.status && !d.status.short && (d.status.busy || d.status.warn) ? `<div class="cstatus ${d.status.busy ? 'busy' : 'warn'}" style="margin-bottom:10px">${d.status.busy ? '<span class="spin"></span>' : ''}${esc(d.status.msg)}${d.status.retry ? ' <button class="chipbtn" data-act="retryCourse">Try again</button>' : ''}</div>` : ''}
   <div class="cp-stats"><div><b>${n}</b><span>Holes</span></div><div><b>${parT}</b><span>Par</span></div><div><b>${lenT ? fd(lenT) : '–'}<small>${lenT ? S.settings.unit : ''}</small></b><span>Length</span></div><div><b>${T && T.cr ? `${T.cr}<small>/${T.slope}</small>` : '–'}</b><span>Rating/Slope</span></div></div>
   <div class="cp-btns"><button class="btn cp-prev" data-act="cpPreview">Course preview</button><button class="btn primary" data-act="startRound">Play</button></div>

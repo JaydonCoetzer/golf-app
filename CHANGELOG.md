@@ -2,6 +2,7 @@
 
 Small improvements made by the improvement loop, newest first.
 
+- Rondebosch tee boxes with rating & slope (TheGrint): Yellow 72.0/128, White 69.8/124, Red 67.5/119 (men); ladies 78.8/137, 76.4/131, 73.5/123. Courses with built-in tees no longer say rating & slope are missing.
 - Rondebosch Golf Club: full 18-hole scorecard (par 72, all stroke indexes); holes 2, 3, 4, 13, 17 added from published scorecards (data/scorecards.json, kept on yearly rebuilds). Setting the pin on a hole with no mapped green saves it as that hole's green.
 - Shot marking picks your next club from the distance left (putter on the green) and asks before saving a double-tap duplicate. Recap shows round time. Home shows what to work on next (links to Practice). Add-player button matches the blue theme.
 - Scoring Method: round Recap shows SZIR, Down in 3, Both and your biggest leak; ✓/✗ rows on the card. Scoring stats add bogey or better, doubles per 18, bounce back and on-the-green-from-the-zone.
