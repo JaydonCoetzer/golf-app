@@ -2,6 +2,7 @@
 
 Small improvements made by the improvement loop, newest first.
 
+- Rondebosch Golf Club: full 18-hole scorecard (par 72, all stroke indexes); holes 2, 3, 4, 13, 17 added from published scorecards (data/scorecards.json, kept on yearly rebuilds). Setting the pin on a hole with no mapped green saves it as that hole's green.
 - Shot marking picks your next club from the distance left (putter on the green) and asks before saving a double-tap duplicate. Recap shows round time. Home shows what to work on next (links to Practice). Add-player button matches the blue theme.
 - Scoring Method: round Recap shows SZIR, Down in 3, Both and your biggest leak; ✓/✗ rows on the card. Scoring stats add bogey or better, doubles per 18, bounce back and on-the-green-from-the-zone.
 - Share scorecard: a finished round can be shared (WhatsApp etc.) or copied as a text summary.

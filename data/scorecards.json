@@ -1,0 +1,13 @@
+{
+  "_note": "Hand-entered scorecard data merged into data/za by tools/build-courses.mjs. Fills par/SI/length for holes OpenStreetMap is missing. Geo still comes from OSM.",
+  "rondebosch-golf-club": {
+    "source": "TheGrint / Hole19 / Swing by Swing scorecards (Nov 2026); yellow-tee metres",
+    "holes": [
+      { "n": 2, "par": 3, "si": 13, "len": 178 },
+      { "n": 3, "par": 5, "si": 5, "len": 503 },
+      { "n": 4, "par": 4, "si": 3, "len": 397 },
+      { "n": 13, "par": 5, "si": 12, "len": 452 },
+      { "n": 17, "par": 5, "si": 6, "len": 450 }
+    ]
+  }
+}

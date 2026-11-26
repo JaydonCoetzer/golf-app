@@ -51,7 +51,7 @@ const zoneMetres = () => (S.settings.unit === 'yd' ? S.settings.zone * 0.9144 : 
 /* ---------- course geo store ---------- */
 function geoKey() { const r = activeRound(); return ((r && r.course) || 'unnamed').trim().toLowerCase(); }
 function courseGeo() { const k = geoKey(); return (S.geo[k] = S.geo[k] || { holes: {}, greens: [] }); }
-function holeGeo(n) { return courseGeo().holes[n] || null; }
+function holeGeo(n) { const g = courseGeo().holes[n]; return g && g.c ? g : null; }
 function greenDistances(n) {
   const g = holeGeo(n), o = typeof originPt === 'function' ? originPt() : M.me; if (!g || !o) return null;
   const pin = typeof pinPt === 'function' ? pinPt(n) : g.c;
@@ -373,7 +373,10 @@ function mapOverlays() {
 }
 function onMapClick(e) {
   const p = [e.latlng.lat, e.latlng.lng];
-  if (M.setPin) { const r = activeRound(); r.pins = r.pins || {}; r.pins[curHole().n] = p; M.setPin = false; M.aim = null; persist(); toast('Pin set'); render(); return; }
+  if (M.setPin) { const r = activeRound(), n = curHole().n; r.pins = r.pins || {}; r.pins[n] = p;
+    // hole has no mapped green: remember this as the green for next time
+    const geo = courseGeo(); if (!(geo.holes[n] && geo.holes[n].c)) { geo.holes[n] = Object.assign({}, geo.holes[n], { c: p, manual: true }); saveGeo(); }
+    M.setPin = false; M.aim = null; persist(); toast('Pin set'); render(); return; }
   if (M.setTee) { const geo = courseGeo(), n = curHole().n; geo.holes[n] = Object.assign({}, geo.holes[n], { tee: p, manualTee: true }); M.setTee = false; M.aim = null; saveGeo(); toast('Tee set'); render(); return; }
   if (M.setFlag) {
     const geo = courseGeo(), n = curHole().n;

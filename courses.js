@@ -38,7 +38,7 @@ function courseFromFile(f, name) {
   const key = name.trim().toLowerCase();
   const geo = (S.geo[key] = S.geo[key] || { holes: {}, greens: [] });
   geo.center = f.center; geo.greens = f.greens || []; geo.hazards = f.hazards || []; geo.tried = true; geo.hz = true;
-  for (const h of f.holes) if (!(geo.holes[h.n] && geo.holes[h.n].manual)) geo.holes[h.n] = Object.assign({}, h.green, { tee: h.tee });
+  for (const h of f.holes) if (h.green && !(geo.holes[h.n] && geo.holes[h.n].manual)) geo.holes[h.n] = Object.assign({}, h.green, { tee: h.tee });
   saveGeo();
   const byN = Object.fromEntries(f.holes.map(h => [h.n, h]));
   const count = f.holes.length >= 10 || f.holes.some(h => h.n > 9) ? 18 : f.holes.length ? 9 : 0;

@@ -1,6 +1,7 @@
 // Builds data/za/index.json and data/za/<id>.json from OpenStreetMap (Overpass API).
 // Run by .github/workflows/courses.yml (yearly + on demand). Node 20+, no dependencies.
-import { writeFileSync, mkdirSync, readdirSync, unlinkSync } from 'node:fs';
+import { writeFileSync, mkdirSync, readdirSync, unlinkSync, readFileSync } from 'node:fs';
+let CARDS = {}; try { CARDS = JSON.parse(readFileSync('data/scorecards.json', 'utf8')); } catch (e) {}
 
 const ENDPOINTS = ['https://overpass-api.de/api/interpreter', 'https://overpass.kumi.systems/api/interpreter'];
 const AREA = 'area["ISO3166-1"="ZA"][admin_level=2]->.za;';
@@ -99,6 +100,9 @@ for (const c of courses) {
     for (const gr of c.greens) { const d = inPoly(h.end, gr.poly) ? 0 : dist(h.end, gr.c); if (d < bd) { bd = d; best = gr; } }
     return { n: h.n, par: h.par, si: h.si, len: h.len, tee: h.tee, green: best && bd < 60 ? { c: best.c, poly: best.poly } : { c: h.end } };
   });
+  const card = CARDS[id];
+  if (card) for (const x of card.holes) { const h = holes.find(y => y.n === x.n); if (h) { h.par = h.par || x.par; h.si = h.si || x.si; h.len = h.len || x.len; } else holes.push({ n: x.n, par: x.par, si: x.si, len: x.len }); }
+  holes.sort((a, b) => a.n - b.n);
   const t = c.tags;
   const town = t['addr:city'] || t['addr:suburb'] || t['addr:town'] || t['is_in:city'] || '';
   const full = { id, name, town, center: c.center, osm: c.osm, website: t.website || t['contact:website'] || '', phone: t.phone || t['contact:phone'] || '',
