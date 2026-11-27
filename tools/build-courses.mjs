@@ -101,7 +101,7 @@ for (const c of courses) {
     return { n: h.n, par: h.par, si: h.si, len: h.len, tee: h.tee, green: best && bd < 60 ? { c: best.c, poly: best.poly } : { c: h.end } };
   });
   const card = CARDS[id];
-  if (card) for (const x of card.holes) { const h = holes.find(y => y.n === x.n); if (h) { h.par = h.par || x.par; h.si = h.si || x.si; h.len = h.len || x.len; } else holes.push({ n: x.n, par: x.par, si: x.si, len: x.len }); }
+  if (card) for (const x of card.holes) { const h = holes.find(y => y.n === x.n); if (h) { h.par = h.par || x.par; h.si = h.si || x.si; h.len = h.len || x.len; } else holes.push({ n: x.n, par: x.par, si: x.si, len: x.len, ...(x.tee ? { tee: x.tee } : {}), ...(x.green ? { green: x.green } : {}) }); }
   holes.sort((a, b) => a.n - b.n);
   const t = c.tags;
   const town = t['addr:city'] || t['addr:suburb'] || t['addr:town'] || t['is_in:city'] || '';
